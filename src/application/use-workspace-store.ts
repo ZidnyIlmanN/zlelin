@@ -87,7 +87,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
   roomConfig: {
     id: 'ZLE-8842',
     title: 'Cozy Sunday Session',
-    hostName: 'Clara',
+    hostName: 'Host',
     pieceCount: 24,
     allowRotation: false,
     theme: 'wood',

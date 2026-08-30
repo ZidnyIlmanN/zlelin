@@ -126,16 +126,7 @@ export const useFriendsStore = create<FriendsStoreState>((set, get) => ({
 
     if (!isSupabaseConfigured) {
       set({
-        friends: [
-          {
-            id: 'friend-1',
-            email: 'clara@zlelin.app',
-            username: 'clara',
-            fullName: 'Clara Oswald',
-            avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-            status: 'online',
-          },
-        ],
+        friends: [],
         isInitialized: true,
       });
       return;

@@ -39,16 +39,8 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     set({ isLoading: true });
 
     if (!isSupabaseConfigured) {
-      // Fallback demo user if Supabase env keys are not added yet
       set({
-        user: {
-          id: 'demo-user-123',
-          email: 'clara@zlelin.app',
-          username: 'clara',
-          fullName: 'Clara Oswald',
-          avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-          status: 'online',
-        },
+        user: null,
         isLoading: false,
       });
       return;
@@ -110,13 +102,14 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
 
   signInWithPassword: async (email, password) => {
     if (!isSupabaseConfigured) {
-      // Demo authentication simulation
+      const namePart = email.split('@')[0] || 'User';
+      const cleanName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
       set({
         user: {
           id: 'demo-user-' + Date.now(),
           email,
-          username: email.split('@')[0],
-          fullName: email.split('@')[0],
+          username: namePart.toLowerCase().replace(/[^a-z0-9]/g, ''),
+          fullName: cleanName,
           avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
           status: 'online',
         },
