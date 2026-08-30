@@ -1,0 +1,155 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #FAF8F5;
+    color: #3B322C;
+    overflow-x: hidden;
+    user-select: none;
+  }
+}
+
+/* Subtle Glassmorphism Utility */
+.glass-panel {
+  background: rgba(250, 248, 245, 0.78);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+}
+
+.glass-dark {
+  background: rgba(35, 28, 22, 0.82);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Dynamic Tabletop Background Patterns */
+.theme-wood {
+  background: #EBE3D9;
+  background-image: radial-gradient(rgba(110, 90, 74, 0.08) 1px, transparent 0);
+  background-size: 24px 24px;
+}
+
+.theme-coffee {
+  background: #3D312A;
+  background-image: radial-gradient(rgba(250, 248, 245, 0.05) 1.5px, transparent 0);
+  background-size: 28px 28px;
+  color: #F4EFEA;
+}
+
+.theme-forest {
+  background: #2C382B;
+  background-image: radial-gradient(rgba(120, 138, 117, 0.12) 1.5px, transparent 0);
+  background-size: 30px 30px;
+  color: #F4EFEA;
+}
+
+.theme-night {
+  background: #1A181C;
+  background-image: radial-gradient(rgba(165, 148, 249, 0.08) 1.5px, transparent 0);
+  background-size: 32px 32px;
+  color: #F4EFEA;
+}
+
+.theme-paper {
+  background: #F5F2EC;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 23px, rgba(110, 90, 74, 0.04) 24px);
+}
+
+.theme-aurora {
+  background: linear-gradient(135deg, #2E3148, #2B3A42, #392D40);
+  background-size: 400% 400%;
+  animation: auroraGlow 15s ease infinite;
+  color: #F4EFEA;
+}
+
+@keyframes auroraGlow {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Pulse wave for spatial speaking indicator */
+.speaking-pulse {
+  box-shadow: 0 0 0 0 rgba(120, 138, 117, 0.7);
+  animation: pulseSpeaking 1.4s infinite cubic-bezier(0.66, 0, 0, 1);
+}
+
+@keyframes pulseSpeaking {
+  to {
+    box-shadow: 0 0 0 12px rgba(120, 138, 117, 0);
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(110, 90, 74, 0.2);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(110, 90, 74, 0.4);
+}
+
+/* Smooth Fade In */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Music Modal Item Slide In */
+@keyframes musicItemSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Continuous Seamless Marquee for Long Track Titles */
+@keyframes marqueeScroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-scroll {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marqueeScroll 18s linear infinite;
+}
+
+.animate-marquee-scroll:hover {
+  animation-play-state: paused;
+}
+
+.text-mask-fade {
+  mask-image: linear-gradient(to right, transparent 0%, black 6px, black calc(100% - 8px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 6px, black calc(100% - 8px), transparent 100%);
+}
+
