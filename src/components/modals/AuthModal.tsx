@@ -39,6 +39,9 @@ export function AuthModal() {
       const res = await signUpWithPassword(email, password, username, fullName);
       if (res.error) {
         setErrorMsg(res.error);
+      } else if ((res as any).needsEmailConfirmation) {
+        setErrorMsg((res as any).message);
+        addToast('Please check your email to activate your account.');
       } else {
         addToast('Account created successfully!');
       }

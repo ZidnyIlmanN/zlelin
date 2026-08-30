@@ -50,18 +50,24 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
         const user = session.user;
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single();
+        let profile: any = null;
+        try {
+          const { data: p } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .maybeSingle();
+          profile = p;
+        } catch {
+          // ignore
+        }
 
         set({
           user: {
             id: user.id,
             email: user.email || '',
-            username: profile?.username || user.email?.split('@')[0] || 'user',
-            fullName: profile?.full_name || user.user_metadata?.full_name || 'Anonymous',
+            username: profile?.username || user.user_metadata?.username || user.email?.split('@')[0] || 'user',
+            fullName: profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || 'User',
             avatarUrl: profile?.avatar_url || user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
             status: 'online',
           },
@@ -75,18 +81,24 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       supabase.auth.onAuthStateChange(async (_event, session) => {
         if (session?.user) {
           const user = session.user;
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single();
+          let profile: any = null;
+          try {
+            const { data: p } = await supabase
+              .from('profiles')
+              .select('*')
+              .eq('id', user.id)
+              .maybeSingle();
+            profile = p;
+          } catch {
+            // ignore
+          }
 
           set({
             user: {
               id: user.id,
               email: user.email || '',
-              username: profile?.username || user.email?.split('@')[0] || 'user',
-              fullName: profile?.full_name || user.user_metadata?.full_name || 'Anonymous',
+              username: profile?.username || user.user_metadata?.username || user.email?.split('@')[0] || 'user',
+              fullName: profile?.full_name || user.user_metadata?.full_name || user.user_metadata?.name || 'User',
               avatarUrl: profile?.avatar_url || user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
               status: 'online',
             },
@@ -118,9 +130,35 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
       return {};
     }
 
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) return { error: error.message };
-    set({ isAuthModalOpen: false });
+
+    if (data.user) {
+      let profile: any = null;
+      try {
+        const { data: p } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .maybeSingle();
+        profile = p;
+      } catch {
+        // ignore
+      }
+
+      set({
+        user: {
+          id: data.user.id,
+          email: data.user.email || email,
+          username: profile?.username || data.user.user_metadata?.username || email.split('@')[0],
+          fullName: profile?.full_name || data.user.user_metadata?.full_name || data.user.user_metadata?.name || email.split('@')[0],
+          avatarUrl: profile?.avatar_url || data.user.user_metadata?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+          status: 'online',
+        },
+        isAuthModalOpen: false,
+      });
+    }
+
     return {};
   },
 
@@ -130,8 +168,8 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
         user: {
           id: 'demo-user-' + Date.now(),
           email,
-          username,
-          fullName,
+          username: username.toLowerCase().replace(/[^a-z0-9]/g, ''),
+          fullName: fullName || username,
           avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
           status: 'online',
         },
@@ -152,13 +190,38 @@ export const useAuthStore = create<AuthStoreState>((set, get) => ({
     });
 
     if (error) return { error: error.message };
+
     if (data.user) {
-      await supabase.from('profiles').upsert({
-        id: data.user.id,
-        username,
-        full_name: fullName,
-        avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      });
+      try {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          username,
+          full_name: fullName,
+          avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+        });
+      } catch (e) {
+        console.warn('Profile creation warning:', e);
+      }
+
+      if (data.session) {
+        set({
+          user: {
+            id: data.user.id,
+            email: data.user.email || email,
+            username,
+            fullName,
+            avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+            status: 'online',
+          },
+          isAuthModalOpen: false,
+        });
+        return {};
+      } else {
+        return {
+          needsEmailConfirmation: true,
+          message: 'Account created! Please check your email to activate your account before signing in (or disable "Confirm email" in Supabase Auth settings).',
+        };
+      }
     }
 
     set({ isAuthModalOpen: false });
