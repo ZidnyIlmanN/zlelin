@@ -53,23 +53,23 @@ export function Header() {
             onClick={() => switchView('home')}
             className="flex items-center gap-2.5 cursor-pointer group"
           >
-            <div className="w-10 h-10 rounded-2xl bg-sage-500 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
+            <div className="w-10 h-10 rounded-2xl bg-[#788A75] text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
               <Shapes className="w-5 h-5" />
             </div>
-            <span className="text-xl font-bold tracking-tight text-warmbrown-500 font-serif">
+            <span className="text-xl font-bold tracking-tight text-white font-serif">
               Zlelin
             </span>
           </div>
 
           {/* Center Navigation Links: Shown on initial / non-workspace views (Home, Library, Lobby) */}
           {!isWorkspace ? (
-            <nav className="hidden md:flex items-center gap-1 glass-panel px-3 py-1.5 rounded-full shadow-cozy border border-white/60">
+            <nav className="hidden md:flex items-center gap-1 bg-[#141E1A]/80 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10 shadow-lg">
               <button
                 onClick={() => switchView('home')}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   currentView === 'home'
-                    ? 'text-sage-700 bg-cream-200/90 shadow-sm'
-                    : 'text-neutral-600 hover:text-warmbrown-600'
+                    ? 'text-white bg-white/10 shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 Home
@@ -78,8 +78,8 @@ export function Header() {
                 onClick={() => switchView('library')}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   currentView === 'library'
-                    ? 'text-sage-700 bg-cream-200/90 shadow-sm'
-                    : 'text-neutral-600 hover:text-warmbrown-600'
+                    ? 'text-white bg-white/10 shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 Puzzle Library
@@ -88,15 +88,15 @@ export function Header() {
                 onClick={() => switchView('lobby')}
                 className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                   currentView === 'lobby'
-                    ? 'text-sage-700 bg-cream-200/90 shadow-sm'
-                    : 'text-neutral-600 hover:text-warmbrown-600'
+                    ? 'text-white bg-white/10 shadow-sm'
+                    : 'text-neutral-400 hover:text-white'
                 }`}
               >
                 Lobby
               </button>
               <button
                 onClick={() => switchView('game')}
-                className="px-4 py-1.5 rounded-full text-xs font-semibold text-neutral-600 hover:text-warmbrown-600 transition-all"
+                className="px-4 py-1.5 rounded-full text-xs font-semibold text-neutral-400 hover:text-white transition-all"
               >
                 Workspace
               </button>
@@ -106,30 +106,30 @@ export function Header() {
             <div className="flex-1" />
           )}
 
-          {/* Right Action Tools (Shifted left when VC sidebar is expanded in Workspace) */}
+          {/* Right Action Tools */}
           <div className={`flex items-center gap-2.5 transition-all duration-300 ${isWorkspace && isVcExpanded ? 'mr-72 sm:mr-80 md:mr-88 lg:mr-96' : ''}`}>
-            {/* Manage Friends Button (Hidden on Workspace) */}
+            {/* Manage Friends Button */}
             {!isWorkspace && (
               <button
                 onClick={() => setFriendsModalOpen(true)}
-                className="h-10 px-3 rounded-2xl glass-panel flex items-center gap-2 text-warmbrown-600 hover:bg-cream-100 transition shadow-sm text-xs font-semibold border border-white/60"
+                className="h-10 px-3.5 rounded-2xl bg-[#141E1A]/80 backdrop-blur-md flex items-center gap-2 text-white hover:bg-white/10 transition shadow-sm text-xs font-semibold border border-white/10"
                 title="Manage Friends"
               >
-                <Users className="w-4 h-4 text-sage-600" />
+                <Users className="w-4 h-4 text-sage-400" />
                 <span className="hidden sm:inline font-medium">Friends ({friends.length})</span>
               </button>
             )}
 
-            {/* User Profile Button (Hidden on Workspace) */}
+            {/* User Profile Button */}
             {!isWorkspace && (
               <>
                 {user ? (
                   <div
                     onClick={() => setProfileModalOpen(true)}
-                    className="flex items-center gap-2 glass-panel pl-2 pr-3 py-1 rounded-2xl cursor-pointer hover:bg-cream-100 transition group relative border border-white/60 shadow-xs"
-                    title="Edit Profile Settings (Click to change photo, name, username)"
+                    className="flex items-center gap-2 bg-[#141E1A]/80 backdrop-blur-md pl-2 pr-3 py-1 rounded-2xl cursor-pointer hover:bg-white/10 transition group relative border border-white/10 shadow-xs text-white"
+                    title="Edit Profile Settings"
                   >
-                    <div className="relative w-8 h-8 rounded-xl overflow-hidden ring-2 ring-sage-500/30">
+                    <div className="relative w-8 h-8 rounded-xl overflow-hidden ring-1 ring-white/20">
                       <Image
                         src={user.avatarUrl}
                         alt={user.fullName}
@@ -138,14 +138,14 @@ export function Header() {
                         className="object-cover"
                       />
                     </div>
-                    <span className="text-xs font-semibold text-warmbrown-600 hidden sm:inline max-w-[110px] truncate">
+                    <span className="text-xs font-semibold text-white hidden sm:inline max-w-[110px] truncate">
                       {user.fullName || user.username}
                     </span>
                   </div>
                 ) : (
                   <button
                     onClick={() => setAuthModalOpen(true, 'login')}
-                    className="px-4 py-2 rounded-2xl bg-sage-500 text-white font-semibold text-xs hover:bg-sage-600 transition shadow-sm flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-2xl bg-[#788A75] text-white font-semibold text-xs hover:bg-[#687A65] transition shadow-sm flex items-center gap-1.5"
                   >
                     <LogIn className="w-3.5 h-3.5" />
                     Sign In

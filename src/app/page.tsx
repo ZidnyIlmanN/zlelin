@@ -37,9 +37,10 @@ export default function MainPage() {
 
   return (
     <>
-      <Header />
+      {/* Show standard header on non-home views (Library, Lobby, Game) */}
+      {currentView !== 'home' && <Header />}
 
-      <main className="flex-1 relative pt-20">
+      <main className={`flex-1 relative ${currentView !== 'home' ? 'pt-20' : ''}`}>
         {currentView === 'home' && <HomeView />}
         {currentView === 'library' && <LibraryView />}
         {currentView === 'lobby' && <LobbyView />}

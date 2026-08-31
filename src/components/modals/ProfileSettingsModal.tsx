@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/application/use-auth-store';
 import { useWorkspaceStore } from '@/application/use-workspace-store';
-import { X, Upload, Check, User, Sparkles, LogOut, Camera, Shield } from 'lucide-react';
+import { X, Upload, Check, User, Camera, LogOut, Trophy, Puzzle } from 'lucide-react';
 import Image from 'next/image';
 
 const PRESET_AVATARS = [
@@ -24,6 +24,7 @@ export function ProfileSettingsModal() {
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [activeTab, setActiveTab] = useState<'profile' | 'avatar'>('profile');
   const [isSaving, setIsSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -78,40 +79,36 @@ export function ProfileSettingsModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in">
-      {/* Dark Blur Backdrop */}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-fade-in select-none">
+      {/* Dark Backdrop */}
       <div
-        className="absolute inset-0 bg-warmbrown-900/60 backdrop-blur-md transition-opacity"
+        className="absolute inset-0 bg-black/80 transition-opacity"
         onClick={() => setProfileModalOpen(false)}
       />
 
-      {/* Solid Opaque Modal Container */}
-      <div className="relative w-full max-w-lg bg-white rounded-[2.5rem] shadow-2xl border border-cream-200 overflow-hidden z-10 animate-scale-up">
-        {/* Header Bar */}
-        <div className="flex items-center justify-between px-7 py-5 border-b border-cream-100 bg-cream-50/80">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-sage-500 text-white flex items-center justify-center shadow-sm">
-              <User className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-serif font-bold text-warmbrown-600">Profile Settings</h2>
-              <p className="text-xs text-neutral-500">Manage your profile details and avatar</p>
-            </div>
-          </div>
+      {/* Minimalist Cozy Profile Card */}
+      <div className="relative w-full max-w-md bg-[#0F1513] rounded-[2.5rem] shadow-2xl border border-white/5 overflow-hidden z-10 animate-scale-up text-white flex flex-col max-h-[90vh]">
+        
+        {/* Top Header */}
+        <div className="flex items-center justify-between px-7 pt-6 pb-2">
+          <span className="text-xs font-semibold tracking-wider uppercase text-neutral-400">
+            Profile Setting
+          </span>
           <button
             onClick={() => setProfileModalOpen(false)}
-            className="w-9 h-9 rounded-full bg-cream-200/80 hover:bg-cream-300 flex items-center justify-center text-warmbrown-600 transition"
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-neutral-400 hover:text-white transition"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Form Body */}
-        <form onSubmit={handleSave} className="p-7 space-y-6 max-h-[80vh] overflow-y-auto">
-          {/* Avatar Section */}
-          <div className="flex flex-col sm:flex-row items-center gap-6 pb-6 border-b border-cream-100">
-            <div className="relative group shrink-0">
-              <div className="relative w-24 h-24 rounded-full overflow-hidden shadow-lg border-4 border-white ring-2 ring-sage-500/30 bg-neutral-900">
+        {/* Content Area */}
+        <div className="px-7 pb-6 overflow-y-auto custom-scrollbar flex-1 space-y-5">
+          
+          {/* Avatar & Player Info */}
+          <div className="flex flex-col items-center text-center pt-2">
+            <div className="relative mb-3">
+              <div className="relative w-20 h-20 rounded-full overflow-hidden bg-neutral-900 ring-1 ring-white/10 group">
                 <Image
                   src={avatarUrl || user.avatarUrl}
                   alt={fullName || 'Avatar'}
@@ -119,16 +116,16 @@ export function ProfileSettingsModal() {
                   unoptimized
                   className="object-cover"
                 />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="absolute inset-0 rounded-full bg-black/60 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200 cursor-pointer"
+                >
+                  <Camera className="w-4 h-4 text-neutral-200 mb-0.5" />
+                  <span className="text-[9px] font-medium text-neutral-300">Edit</span>
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute inset-0 rounded-full bg-black/40 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200"
-                title="Upload custom photo"
-              >
-                <Camera className="w-6 h-6" />
-                <span className="text-[9px] font-bold mt-1">Change</span>
-              </button>
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -138,127 +135,190 @@ export function ProfileSettingsModal() {
               />
             </div>
 
-            <div className="space-y-2 text-center sm:text-left flex-1">
-              <div>
-                <h4 className="text-xs font-bold text-warmbrown-600 uppercase tracking-wider">Profile Photo</h4>
-                <p className="text-[11px] text-neutral-500">Upload a custom image or pick from cozy presets below.</p>
+            <h2 className="text-lg font-bold text-white tracking-tight">
+              {fullName || user.fullName || 'Cozy Player'}
+            </h2>
+            <p className="text-xs text-neutral-400 font-mono mt-0.5">
+              @{username || user.username}
+            </p>
+          </div>
+
+          {/* Minimal Stat Badges */}
+          <div className="grid grid-cols-2 gap-3 p-3 rounded-2xl bg-white/[0.03]">
+            <div className="flex items-center gap-3 p-2 rounded-xl bg-white/[0.02]">
+              <div className="w-8 h-8 rounded-lg bg-white/5 text-neutral-300 flex items-center justify-center shrink-0">
+                <Trophy className="w-4 h-4 text-amber-300/80" />
               </div>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="px-4 py-2 rounded-2xl bg-cream-100 hover:bg-cream-200 text-warmbrown-600 text-xs font-semibold inline-flex items-center gap-2 transition border border-cream-200"
-              >
-                <Upload className="w-3.5 h-3.5 text-sage-600" />
-                Upload New Image
-              </button>
+              <div>
+                <p className="text-[10px] font-medium text-neutral-400 uppercase tracking-wider">Level</p>
+                <p className="text-xs font-bold text-neutral-200">Master Puzzler</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-2 rounded-xl bg-white/[0.02]">
+              <div className="w-8 h-8 rounded-lg bg-white/5 text-neutral-300 flex items-center justify-center shrink-0">
+                <Puzzle className="w-4 h-4 text-sage-400" />
+              </div>
+              <div>
+                <p className="text-[10px] font-medium text-neutral-400 uppercase tracking-wider">Score</p>
+                <p className="text-xs font-bold text-neutral-200">2,480 pts</p>
+              </div>
             </div>
           </div>
 
-          {/* Preset Avatars Gallery */}
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-warmbrown-600 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
-              Choose from Presets:
-            </label>
-            <div className="grid grid-cols-4 sm:grid-cols-8 gap-2">
-              {PRESET_AVATARS.map((preset) => {
-                const isSelected = avatarUrl === preset.url;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => setAvatarUrl(preset.url)}
-                    className={`relative aspect-square rounded-2xl overflow-hidden transition-all duration-200 ${
-                      isSelected
-                        ? 'ring-3 ring-sage-500 shadow-md scale-105'
-                        : 'opacity-70 hover:opacity-100 hover:scale-105 border border-cream-200'
-                    }`}
-                    title={preset.label}
-                  >
-                    <Image src={preset.url} alt={preset.label} fill unoptimized className="object-cover" />
-                    {isSelected && (
-                      <div className="absolute inset-0 bg-sage-600/30 flex items-center justify-center">
-                        <Check className="w-4 h-4 text-white drop-shadow" />
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+          {/* Segmented Switcher Tab */}
+          <div className="flex items-center p-1 rounded-2xl bg-white/[0.03]">
+            <button
+              type="button"
+              onClick={() => setActiveTab('profile')}
+              className={`flex-1 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === 'profile'
+                  ? 'bg-white/10 text-white shadow-sm'
+                  : 'text-neutral-400 hover:text-neutral-200'
+              }`}
+            >
+              Edit Identity
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('avatar')}
+              className={`flex-1 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                activeTab === 'avatar'
+                  ? 'bg-white/10 text-white shadow-sm'
+                  : 'text-neutral-400 hover:text-neutral-200'
+              }`}
+            >
+              Choose Avatar
+            </button>
           </div>
 
-          {/* Text Inputs */}
-          <div className="space-y-4 pt-2">
-            <div>
-              <label className="block text-xs font-bold text-warmbrown-600 mb-1.5">Full Name</label>
-              <input
-                type="text"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Clara Oswald"
-                required
-                className="w-full px-4 py-3 rounded-2xl bg-cream-50/60 border border-cream-300 focus:outline-none focus:ring-2 focus:ring-sage-500/20 text-xs text-warmbrown-600 font-medium"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-warmbrown-600 mb-1.5">Username</label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 text-xs font-mono">@</span>
+          {/* Tab 1: Edit Identity Form */}
+          {activeTab === 'profile' && (
+            <div className="space-y-3 pt-1 animate-fade-in">
+              <div>
+                <label className="block text-[11px] font-medium text-neutral-400 mb-1">
+                  Display Name
+                </label>
                 <input
                   type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="username"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Your Name"
                   required
-                  className="w-full pl-8 pr-4 py-3 rounded-2xl bg-cream-50/60 border border-cream-300 focus:outline-none focus:ring-2 focus:ring-sage-500/20 text-xs text-warmbrown-600 font-mono"
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white/[0.04] focus:outline-none focus:bg-white/[0.06] text-xs text-white placeholder-neutral-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-neutral-400 mb-1">
+                  Username
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-500 text-xs font-mono">@</span>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="username"
+                    required
+                    className="w-full pl-8 pr-4 py-2.5 rounded-2xl bg-white/[0.04] focus:outline-none focus:bg-white/[0.06] text-xs text-white font-mono placeholder-neutral-500 transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-medium text-neutral-400 mb-1">
+                  Connected Account
+                </label>
+                <input
+                  type="email"
+                  value={user.email || 'Google Account'}
+                  disabled
+                  className="w-full px-4 py-2.5 rounded-2xl bg-white/[0.02] text-xs text-neutral-500 cursor-not-allowed"
                 />
               </div>
             </div>
+          )}
 
-            <div>
-              <label className="block text-xs font-bold text-warmbrown-600 mb-1.5">Email Address</label>
-              <input
-                type="email"
-                value={user.email || 'Google Account'}
-                disabled
-                className="w-full px-4 py-3 rounded-2xl bg-neutral-100 border border-cream-200 text-xs text-neutral-500 cursor-not-allowed font-medium"
-              />
+          {/* Tab 2: Avatar Presets Grid */}
+          {activeTab === 'avatar' && (
+            <div className="space-y-3 pt-1 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-medium text-neutral-400">
+                  Pick Character
+                </span>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs text-sage-400 hover:text-sage-300 flex items-center gap-1 transition"
+                >
+                  <Upload className="w-3 h-3" /> Custom Photo
+                </button>
+              </div>
+
+              <div className="grid grid-cols-4 gap-2.5">
+                {PRESET_AVATARS.map((preset) => {
+                  const isSelected = avatarUrl === preset.url;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setAvatarUrl(preset.url)}
+                      className={`relative aspect-square rounded-2xl overflow-hidden transition-all duration-200 ${
+                        isSelected
+                          ? 'ring-2 ring-sage-400 scale-105'
+                          : 'opacity-60 hover:opacity-100 hover:scale-105'
+                      }`}
+                      title={preset.label}
+                    >
+                      <Image src={preset.url} alt={preset.label} fill unoptimized className="object-cover" />
+                      {isSelected && (
+                        <div className="absolute inset-0 bg-sage-900/50 flex items-center justify-center">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Footer Action Buttons */}
-          <div className="flex items-center justify-between pt-4 border-t border-cream-100">
+        </div>
+
+        {/* Action Footer */}
+        <div className="px-7 py-4 border-t border-white/5 flex items-center justify-between gap-3 bg-black/20">
+          <button
+            type="button"
+            onClick={() => {
+              setProfileModalOpen(false);
+              signOut();
+            }}
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold text-rose-400/90 hover:text-rose-300 hover:bg-rose-500/10 transition flex items-center gap-1.5"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Sign Out</span>
+          </button>
+
+          <div className="flex items-center gap-2 flex-1 justify-end">
             <button
               type="button"
-              onClick={() => {
-                setProfileModalOpen(false);
-                signOut();
-              }}
-              className="px-4 py-2.5 rounded-2xl text-xs font-bold text-coral-500 hover:bg-coral-50 transition flex items-center gap-1.5"
+              onClick={() => setProfileModalOpen(false)}
+              className="px-4 py-2 rounded-xl text-xs font-medium text-neutral-400 hover:text-white transition"
             >
-              <LogOut className="w-3.5 h-3.5" />
-              Sign Out
+              Cancel
             </button>
-
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setProfileModalOpen(false)}
-                className="px-5 py-2.5 rounded-2xl text-xs font-semibold text-neutral-600 hover:bg-cream-100 transition"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="px-6 py-2.5 rounded-2xl bg-sage-500 hover:bg-sage-600 text-white text-xs font-bold shadow-md transition disabled:opacity-50 flex items-center gap-1.5"
-              >
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </button>
-            </div>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-5 py-2.5 rounded-2xl bg-[#788A75] hover:bg-[#687A65] text-white text-xs font-semibold transition disabled:opacity-50 flex items-center gap-1.5 shadow-sm"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>{isSaving ? 'Saving…' : 'Save Changes'}</span>
+            </button>
           </div>
-        </form>
+        </div>
+
       </div>
     </div>
   );

@@ -22,7 +22,6 @@ export function MusicModal() {
   useEffect(() => {
     if (isMusicModalOpen) {
       setIsVisible(true);
-      // Delay to allow the DOM to render before triggering the animation
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           setIsAnimating(true);
@@ -37,7 +36,7 @@ export function MusicModal() {
     setTimeout(() => {
       setIsVisible(false);
       setMusicModalOpen(false);
-    }, 350); // Match the CSS transition duration
+    }, 250);
   }, [setMusicModalOpen]);
 
   const handleSelectTrack = (trackId: MusicTrackId) => {
@@ -47,86 +46,78 @@ export function MusicModal() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-end justify-center">
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 select-none">
+      {/* Dark Backdrop (No blur) */}
       <div
-        className={`absolute inset-0 transition-opacity duration-300 ease-out ${
-          isAnimating ? 'bg-black/40' : 'bg-black/0'
+        className={`absolute inset-0 bg-black/80 transition-opacity duration-300 ${
+          isAnimating ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={handleClose}
       />
 
       {/* Modal Panel */}
       <div
-        className={`relative w-full max-w-md mx-4 mb-4 rounded-3xl overflow-hidden shadow-2xl transition-all duration-350 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        className={`relative w-full max-w-md rounded-[2.5rem] bg-[#0F1513] border border-white/5 shadow-2xl overflow-hidden text-white transition-all duration-300 ease-out ${
           isAnimating
             ? 'translate-y-0 opacity-100 scale-100'
-            : 'translate-y-full opacity-0 scale-95'
+            : 'translate-y-4 opacity-0 scale-95'
         }`}
-        style={{ transitionDuration: '350ms' }}
       >
-        {/* Gradient Header */}
-        <div className="bg-gradient-to-br from-amber-800 via-amber-900 to-stone-900 px-6 pt-6 pb-4">
-          <div className="flex items-center justify-between mb-1">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-sm flex items-center justify-center">
-                <Music className="w-5 h-5 text-amber-200" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-white">Pilih Lagu</h2>
-                <p className="text-xs text-amber-200/70">Synchronized music session</p>
-              </div>
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-[#788A75] text-white flex items-center justify-center shadow-sm">
+              <Music className="w-5 h-5" />
             </div>
-            <button
-              onClick={handleClose}
-              className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-            >
-              <X className="w-4 h-4 text-white/80" />
-            </button>
+            <div>
+              <h2 className="text-base font-serif font-bold text-white">Music Selector</h2>
+              <p className="text-xs text-neutral-400">Background Ambience</p>
+            </div>
           </div>
+          <button
+            onClick={handleClose}
+            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-neutral-400 hover:text-white transition"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
 
         {/* Track List */}
-        <div className="bg-gradient-to-b from-stone-50 to-white px-4 py-4 space-y-2">
-          {MUSIC_TRACKS.map((track, index) => {
+        <div className="px-5 py-4 space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
+          {MUSIC_TRACKS.map((track) => {
             const isActive = selectedMusicTrack === track.id;
             return (
               <button
                 key={track.id}
                 onClick={() => handleSelectTrack(track.id)}
-                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-200 group ${
+                className={`w-full flex items-center gap-3.5 px-3.5 py-3 rounded-2xl transition-all duration-200 text-left ${
                   isActive
-                    ? 'bg-amber-900 text-white shadow-lg shadow-amber-900/20 scale-[1.02]'
-                    : 'bg-white hover:bg-stone-100 text-stone-700 border border-stone-200/60 hover:border-stone-300 hover:scale-[1.01]'
+                    ? 'bg-white/10 text-white shadow-sm'
+                    : 'bg-white/[0.02] hover:bg-white/[0.05] text-neutral-300'
                 }`}
-                style={{
-                  transitionDelay: isAnimating ? `${index * 50}ms` : '0ms',
-                  animation: isAnimating ? `musicItemSlideIn 0.4s ease-out ${index * 60}ms both` : 'none'
-                }}
               >
                 {/* Disc Icon */}
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                  isActive ? 'bg-white/20' : 'bg-stone-100 group-hover:bg-stone-200'
-                }`}>
-                  <Disc className={`w-5 h-5 ${
-                    isActive ? 'text-amber-200 animate-spin' : 'text-stone-400'
-                  }`} style={{ animationDuration: '8s' }} />
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    isActive ? 'bg-[#788A75] text-white' : 'bg-white/5 text-neutral-400'
+                  }`}
+                >
+                  <Disc
+                    className={`w-4 h-4 ${isActive ? 'animate-spin' : ''}`}
+                    style={{ animationDuration: '8s' }}
+                  />
                 </div>
 
                 {/* Track Info */}
-                <div className="flex-1 text-left">
-                  <p className={`text-sm font-semibold ${isActive ? 'text-white' : 'text-stone-700'}`}>
-                    {track.title}
-                  </p>
-                  <p className={`text-xs mt-0.5 ${isActive ? 'text-amber-200/70' : 'text-stone-400'}`}>
-                    {track.subtitle}
-                  </p>
+                <div className="flex-1 overflow-hidden">
+                  <p className="text-xs font-bold text-white truncate">{track.title}</p>
+                  <p className="text-[11px] text-neutral-400 truncate">{track.subtitle}</p>
                 </div>
 
                 {/* Active Check */}
                 {isActive && (
-                  <div className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center">
-                    <Check className="w-3.5 h-3.5 text-amber-200" />
+                  <div className="w-5 h-5 rounded-full bg-[#788A75] flex items-center justify-center text-white shrink-0">
+                    <Check className="w-3 h-3" />
                   </div>
                 )}
               </button>
@@ -135,16 +126,16 @@ export function MusicModal() {
         </div>
 
         {/* Play/Pause Footer */}
-        <div className="bg-white border-t border-stone-100 px-6 py-4 flex items-center justify-between">
-          <span className="text-xs text-stone-400 font-medium">
-            {isPlayingMusic ? '♪ Sedang memutar' : '♪ Dijeda'}
+        <div className="px-6 py-4 bg-white/[0.02] border-t border-white/5 flex items-center justify-between">
+          <span className="text-xs text-neutral-400 font-medium">
+            {isPlayingMusic ? '♪ Now Playing' : '♪ Paused'}
           </span>
           <button
             onClick={toggleMusic}
-            className={`px-5 py-2 rounded-full text-xs font-semibold transition-all duration-200 ${
+            className={`px-4 py-1.5 rounded-xl text-xs font-semibold transition ${
               isPlayingMusic
-                ? 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                : 'bg-amber-900 text-white hover:bg-amber-800 shadow-md'
+                ? 'bg-white/10 text-white hover:bg-white/15'
+                : 'bg-[#788A75] hover:bg-[#687A65] text-white'
             }`}
           >
             {isPlayingMusic ? 'Pause' : 'Play'}

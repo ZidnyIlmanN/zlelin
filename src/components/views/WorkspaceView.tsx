@@ -13,7 +13,7 @@ import {
   BoardSyncPayload,
 } from '@/application/use-realtime-room';
 import { useWebRtcCall } from '@/application/use-webrtc-call';
-import { CanvasEngine } from '@/infrastructure/canvas-engine';
+import { ThreePuzzleEngine } from '@/infrastructure/three-puzzle-engine';
 import { FloatingToolbar } from '@/components/layout/FloatingToolbar';
 import { FloatingDock } from '@/components/layout/FloatingDock';
 import { Mic, MicOff, Video as VideoIcon, VideoOff, Maximize2, Minimize2 } from 'lucide-react';
@@ -54,9 +54,8 @@ export function WorkspaceView() {
 
   const { localStream, remoteStreams } = useWebRtcCall(roomConfig.id);
 
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const engineRef = useRef<CanvasEngine | null>(null);
+  const engineRef = useRef<ThreePuzzleEngine | null>(null);
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
 
   // Store latest callbacks in refs to avoid recreating the engine
@@ -109,29 +108,25 @@ export function WorkspaceView() {
     }
   }, [localStream, isCamOn]);
 
-  // Initialize Interactive Canvas Engine with Deterministic Room Seed
+  // Initialize Interactive 3D Puzzle Engine with Deterministic Room Seed
   useEffect(() => {
-    if (!canvasRef.current || !containerRef.current) return;
+    if (!containerRef.current) return;
 
-    const canvas = canvasRef.current;
     const container = containerRef.current;
-
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
-
     const currentUserName = user?.fullName || user?.username || 'Player';
     const roomSeed = `${roomConfig.id}-${selectedPuzzle.id}`;
 
-    // Create or reuse CanvasEngine
+    // Create or reuse ThreePuzzleEngine
     let engine = engineRef.current;
     if (!engine || engine.roomSeed !== roomSeed) {
       if (engine) engine.destroy();
-      engine = new CanvasEngine(
-        canvas,
+      engine = new ThreePuzzleEngine(
+        container,
         selectedPuzzle.url,
         roomConfig.pieceCount,
         roomSeed,
-        currentUserName
+        currentUserName,
+        currentTheme
       );
       engineRef.current = engine;
     } else {
@@ -177,7 +172,7 @@ export function WorkspaceView() {
       callbacksRef.current.broadcastVictory();
     };
 
-    // Resize handler (preserves piece positions, only updates canvas bounds)
+    // Resize handler (preserves 3D piece positions, only updates camera aspect & renderer bounds)
     const handleResize = () => {
       if (engineRef.current && containerRef.current) {
         engineRef.current.resize(
@@ -219,6 +214,8 @@ export function WorkspaceView() {
           piece.y = y;
           piece.isSnapped = isSnapped;
           piece.heldBy = heldBy;
+          const mesh = engineRef.current.pieceMeshes.get(pieceId);
+          if (mesh) mesh.position.set(x, y, 0.002);
           if (isSnapped) callbacksRef.current.playSnapSound();
         }
       }
@@ -268,7 +265,6 @@ export function WorkspaceView() {
       window.removeEventListener('remote-board-sync', handleRemoteBoardSync);
       window.removeEventListener('send-board-sync-to-peer', handleSendBoardSync);
       window.removeEventListener('remote-scatter-pieces', handleRemoteScatter);
-      // NOTE: We do not destroy engineRef here so tab hiding/blurring doesn't wipe the puzzle state!
     };
   }, [
     selectedPuzzle.id,
@@ -281,9 +277,15 @@ export function WorkspaceView() {
 
   useEffect(() => {
     if (engineRef.current) {
-      engineRef.current.showReference = showReferenceOverlay;
+      engineRef.current.toggleReference(showReferenceOverlay);
     }
   }, [showReferenceOverlay]);
+
+  useEffect(() => {
+    if (engineRef.current) {
+      engineRef.current.updateTheme(currentTheme);
+    }
+  }, [currentTheme]);
 
   // Trigger canvas resize & recenter when VC sidebar is toggled (Split screen)
   useEffect(() => {
@@ -639,15 +641,13 @@ export function WorkspaceView() {
         onScatter={handleScatter}
       />
 
-      {/* MAIN PUZZLE INTERACTIVE CANVAS (Split screen layout when VC is expanded) */}
+      {/* MAIN 3D PUZZLE INTERACTIVE VIEWPORT (Split screen layout when VC is expanded) */}
       <div
         ref={containerRef}
-        className={`flex-1 w-full h-full relative overflow-hidden transition-all duration-300 ${
+        className={`flex-1 w-full h-full relative overflow-hidden transition-all duration-300 cursor-grab active:cursor-grabbing ${
           isVcExpanded ? 'mr-72 sm:mr-80 md:mr-88 lg:mr-96' : ''
         }`}
-      >
-        <canvas ref={canvasRef} className="w-full h-full cursor-grab active:cursor-grabbing" />
-      </div>
+      />
 
       {/* FLOATING CHAT / ACTIVITY MESSAGES OVERLAY */}
       <div

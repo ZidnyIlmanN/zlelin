@@ -3,9 +3,16 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    background-color: #0C1210;
+    color-scheme: dark;
+    scrollbar-color: #24332B #0C1210;
+    scrollbar-width: thin;
+  }
+
   body {
-    background-color: #FAF8F5;
-    color: #3B322C;
+    background-color: #0C1210;
+    color: #F4EFEA;
     overflow-x: hidden;
     user-select: none;
   }
@@ -84,20 +91,21 @@
   }
 }
 
-/* Custom Scrollbar */
+/* Custom Sleek Dark Scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #0C1210;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(110, 90, 74, 0.2);
+  background: #24332B;
   border-radius: 99px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(110, 90, 74, 0.4);
+  background: #395044;
 }
 
 /* Smooth Fade In */
@@ -152,4 +160,3 @@
   mask-image: linear-gradient(to right, transparent 0%, black 6px, black calc(100% - 8px), transparent 100%);
   -webkit-mask-image: linear-gradient(to right, transparent 0%, black 6px, black calc(100% - 8px), transparent 100%);
 }
-

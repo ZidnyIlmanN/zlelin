@@ -100,35 +100,34 @@ export function LobbyView() {
   const isHost = !user || user.fullName === roomConfig.hostName || user.username === roomConfig.hostName;
 
   return (
-    <section className="max-w-6xl mx-auto px-6 py-8">
-      {/* Lobby Main Container Card */}
-      <div className="glass-panel p-8 rounded-[2.5rem] shadow-cozy border border-white/80">
+    <section className="max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-8 text-white select-none">
+
+      {/* Lobby Container */}
+      <div className="bg-[#0F1513] p-6 sm:p-8 rounded-[2.5rem] border border-white/5 shadow-2xl">
         
         {/* Top Title Bar */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between pb-6 border-b border-cream-200/80 gap-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between pb-6 border-b border-white/5 gap-4">
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-serif text-warmbrown-600 font-medium">
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-2xl font-serif text-white font-medium">
                 {roomConfig.title}
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-xs font-semibold">
-                Lobby Active
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 text-[10px] font-semibold">
+                Active
               </span>
             </div>
-            <p className="text-xs text-neutral-500 mt-1">
-              Host: <span className="font-semibold text-warmbrown-600">{roomConfig.hostName}</span> · Room Code: <span className="font-mono text-warmbrown-500 font-bold tracking-wider">{roomConfig.id}</span>
+            <p className="text-xs text-neutral-400 mt-1">
+              Host: <span className="font-semibold text-neutral-200">{roomConfig.hostName}</span> · Room Code: <span className="font-mono text-neutral-300 font-bold tracking-wider">{roomConfig.id}</span>
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleStartGame}
-              className="px-6 py-3 rounded-2xl bg-sage-500 text-white font-semibold text-sm hover:bg-sage-600 transition shadow-float flex items-center gap-2"
-            >
-              <Play className="w-4 h-4 fill-current" />
-              Start Session Now
-            </button>
-          </div>
+          <button
+            onClick={handleStartGame}
+            className="px-6 py-3 rounded-2xl bg-[#788A75] hover:bg-[#687A65] text-white font-semibold text-sm transition shadow-sm flex items-center gap-2"
+          >
+            <Play className="w-4 h-4 fill-current" />
+            Start Session Now
+          </button>
         </div>
 
         {/* 2 Column Setup Grid */}
@@ -138,8 +137,8 @@ export function LobbyView() {
           <div className="lg:col-span-5 space-y-6">
             
             {/* Invite Link Box */}
-            <div className="bg-cream-100 p-5 rounded-2xl border border-cream-200">
-              <label className="text-xs font-bold text-warmbrown-600 tracking-wider uppercase block mb-2">
+            <div className="bg-white/[0.03] p-5 rounded-2xl">
+              <label className="text-[11px] font-semibold text-neutral-400 tracking-wider uppercase block mb-2">
                 Share Room Invitation
               </label>
               
@@ -148,28 +147,28 @@ export function LobbyView() {
                   type="text"
                   readOnly
                   value={roomLink}
-                  className="flex-1 bg-white px-3 py-2 rounded-xl text-xs text-neutral-600 border border-cream-300 focus:outline-none font-mono truncate"
+                  className="flex-1 bg-white/[0.04] px-3 py-2 rounded-xl text-xs text-neutral-300 focus:outline-none font-mono truncate"
                 />
                 <button
                   onClick={copyInviteLink}
-                  className="px-3 py-2 bg-warmbrown-500 text-white rounded-xl text-xs font-medium hover:bg-warmbrown-600 transition flex items-center gap-1 shrink-0"
+                  className="px-3 py-2 bg-white/10 hover:bg-white/15 text-white rounded-xl text-xs font-medium transition flex items-center gap-1 shrink-0"
                 >
                   <Copy className="w-3.5 h-3.5" /> Copy
                 </button>
               </div>
 
               {/* Join By Room Code Input */}
-              <form onSubmit={handleJoinByCode} className="flex items-center gap-2 pt-2 border-t border-cream-200">
+              <form onSubmit={handleJoinByCode} className="flex items-center gap-2 pt-3 border-t border-white/5">
                 <input
                   type="text"
                   placeholder="Enter Room Code (e.g. ZLE-8842)"
                   value={inputRoomId}
                   onChange={(e) => setInputRoomId(e.target.value)}
-                  className="flex-1 bg-white px-3 py-2 rounded-xl text-xs text-warmbrown-600 border border-cream-300 focus:outline-none uppercase font-mono"
+                  className="flex-1 bg-white/[0.04] px-3 py-2 rounded-xl text-xs text-white placeholder-neutral-500 focus:outline-none uppercase font-mono"
                 />
                 <button
                   type="submit"
-                  className="px-3 py-2 bg-sage-500 text-white rounded-xl text-xs font-medium hover:bg-sage-600 transition shrink-0"
+                  className="px-3 py-2 bg-[#788A75] hover:bg-[#687A65] text-white rounded-xl text-xs font-medium transition shrink-0"
                 >
                   Join
                 </button>
@@ -179,16 +178,16 @@ export function LobbyView() {
             {/* Connected in Room (Real Presence) */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-warmbrown-600 tracking-wider uppercase">
+                <h3 className="text-[11px] font-semibold text-neutral-400 tracking-wider uppercase">
                   Players in Room ({Math.max(1, participants.length)})
                 </h3>
               </div>
 
               <div className="space-y-2">
                 {/* Current User */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-white border border-cream-200 shadow-sm">
+                <div className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.03]">
                   <div className="flex items-center gap-3">
-                    <div className="relative w-9 h-9 rounded-full overflow-hidden ring-2 ring-sage-500/40">
+                    <div className="relative w-9 h-9 rounded-full overflow-hidden ring-1 ring-white/15">
                       <Image
                         src={user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
                         alt={user?.fullName || 'You'}
@@ -197,17 +196,17 @@ export function LobbyView() {
                       />
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-warmbrown-600">
+                      <p className="text-xs font-bold text-white">
                         {user?.fullName || user?.username || 'You'} (You)
                       </p>
-                      <span className="text-[10px] text-sage-600 font-semibold">
+                      <span className="text-[10px] text-sage-400 font-medium">
                         {isHost ? 'Host · Ready' : 'Participant · Ready'}
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-emerald-500 text-xs">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    <span className="text-[11px] font-medium">Online</span>
+                  <div className="flex items-center gap-1.5 text-emerald-400 text-xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span className="text-[10px] font-medium text-neutral-300">Online</span>
                   </div>
                 </div>
 
@@ -215,21 +214,21 @@ export function LobbyView() {
                 {participants
                   .filter((p) => p.id !== user?.id)
                   .map((p) => (
-                    <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-white border border-cream-200 shadow-sm">
+                    <div key={p.id} className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.03]">
                       <div className="flex items-center gap-3">
                         <div className="relative w-9 h-9 rounded-full overflow-hidden">
                           <Image src={p.avatar} alt={p.name} fill className="object-cover" />
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-warmbrown-600">{p.name}</p>
-                          <span className="text-[10px] text-sage-600 font-semibold">
+                          <p className="text-xs font-bold text-white">{p.name}</p>
+                          <span className="text-[10px] text-sage-400 font-medium">
                             {p.isHost ? 'Host' : 'Connected'}
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 text-emerald-500 text-xs">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                        <span className="text-[11px] font-medium">In Room</span>
+                      <div className="flex items-center gap-1.5 text-emerald-400 text-xs">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                        <span className="text-[10px] font-medium text-neutral-300">In Room</span>
                       </div>
                     </div>
                   ))}
@@ -239,29 +238,29 @@ export function LobbyView() {
             {/* Quick Friend Invite Section */}
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-warmbrown-600 tracking-wider uppercase">
+                <h3 className="text-[11px] font-semibold text-neutral-400 tracking-wider uppercase">
                   Invite Friends ({friends.length})
                 </h3>
                 <button
                   onClick={() => setFriendsModalOpen(true)}
-                  className="text-xs text-sage-600 font-medium cursor-pointer hover:underline flex items-center gap-1"
+                  className="text-xs text-sage-400 font-medium cursor-pointer hover:text-sage-300 flex items-center gap-1 transition"
                 >
-                  <UserPlus className="w-3.5 h-3.5" /> Manage Friends
+                  <UserPlus className="w-3.5 h-3.5" /> Manage
                 </button>
               </div>
 
               {friends.length === 0 ? (
-                <div className="p-4 rounded-xl bg-white border border-cream-200 text-center">
+                <div className="p-4 rounded-2xl bg-white/[0.02] text-center">
                   <p className="text-xs text-neutral-500">No friends added yet.</p>
                   <button
                     onClick={() => setFriendsModalOpen(true)}
-                    className="mt-2 text-xs text-sage-600 font-bold hover:underline"
+                    className="mt-2 text-xs text-sage-400 font-semibold hover:text-sage-300 transition"
                   >
                     + Find & Add Friends
                   </button>
                 </div>
               ) : (
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
                   {[...friends]
                     .sort((a, b) => {
                       const aInRoom = isFriendInRoom(a);
@@ -281,39 +280,38 @@ export function LobbyView() {
                       const online = isFriendOnline(friend);
 
                       return (
-                        <div key={friend.id} className="flex items-center justify-between p-3 rounded-xl bg-white border border-cream-200 shadow-sm">
+                        <div key={friend.id} className="flex items-center justify-between p-3 rounded-2xl bg-white/[0.02] hover:bg-white/[0.04] transition">
                           <div className="flex items-center gap-3">
-                            <div className="relative w-8 h-8 rounded-full overflow-visible">
+                            <div className="relative w-8 h-8 rounded-full">
                               <div className="w-8 h-8 rounded-full overflow-hidden relative">
                                 <Image src={friend.avatarUrl} alt={friend.fullName} fill className="object-cover" />
                               </div>
-                              {/* Real-time Online Indicator */}
+                              {/* Online Indicator */}
                               <span
-                                className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-white ${
-                                  online ? 'bg-emerald-500' : 'bg-neutral-300'
+                                className={`absolute bottom-0 right-0 w-2 h-2 rounded-full ring-2 ring-[#0F1513] ${
+                                  online ? 'bg-emerald-500' : 'bg-neutral-600'
                                 }`}
-                                title={online ? 'Online' : 'Offline'}
                               />
                             </div>
                             <div>
-                              <p className="text-xs font-bold text-warmbrown-600">{friend.fullName}</p>
+                              <p className="text-xs font-bold text-white">{friend.fullName}</p>
                               <div className="flex items-center gap-1">
                                 <span className="text-[10px] text-neutral-400">@{friend.username}</span>
-                                <span className="text-[9px] text-neutral-300">·</span>
+                                <span className="text-[9px] text-neutral-600">·</span>
                                 {inRoom ? (
-                                  <span className="text-[10px] text-sage-600 font-bold">In Room</span>
+                                  <span className="text-[10px] text-sage-400 font-medium">In Room</span>
                                 ) : online ? (
-                                  <span className="text-[10px] text-emerald-600 font-semibold">Online</span>
+                                  <span className="text-[10px] text-neutral-300 font-medium">Online</span>
                                 ) : (
-                                  <span className="text-[10px] text-neutral-400 font-normal">Offline</span>
+                                  <span className="text-[10px] text-neutral-500 font-normal">Offline</span>
                                 )}
                               </div>
                             </div>
                           </div>
 
                           {inRoom ? (
-                            <div className="px-2.5 py-1 rounded-xl bg-sage-50 text-sage-700 border border-sage-200/80 text-[11px] font-semibold flex items-center gap-1">
-                              <Users className="w-3 h-3 text-sage-600" />
+                            <div className="px-2.5 py-1 rounded-xl bg-white/5 text-sage-400 text-[11px] font-semibold flex items-center gap-1">
+                              <Users className="w-3 h-3" />
                               <span>In Room</span>
                             </div>
                           ) : (
@@ -322,16 +320,15 @@ export function LobbyView() {
                               disabled={invitedIds[friend.id]}
                               className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition flex items-center gap-1 ${
                                 invitedIds[friend.id]
-                                  ? 'bg-sage-100 text-sage-700'
+                                  ? 'bg-white/10 text-neutral-300'
                                   : online
-                                  ? 'bg-sage-500 text-white hover:bg-sage-600 shadow-sm'
-                                  : 'bg-cream-200 text-neutral-500 hover:bg-cream-300'
+                                  ? 'bg-[#788A75] text-white hover:bg-[#687A65]'
+                                  : 'bg-white/5 text-neutral-400 hover:bg-white/10'
                               }`}
-                              title={online ? 'Invite to Room' : 'Send Invite (Offline)'}
                             >
                               {invitedIds[friend.id] ? (
                                 <>
-                                  <Check className="w-3 h-3 text-sage-700" /> Sent
+                                  <Check className="w-3 h-3 text-sage-300" /> Sent
                                 </>
                               ) : (
                                 <>
@@ -353,22 +350,22 @@ export function LobbyView() {
           <div className="lg:col-span-7 space-y-6">
             
             {/* Selected Puzzle Preview */}
-            <div className="p-4 rounded-2xl bg-white border border-cream-200 flex items-center gap-4">
+            <div className="p-4 rounded-2xl bg-white/[0.03] flex items-center gap-4">
               <div className="relative w-20 h-20 rounded-xl overflow-hidden shadow-sm shrink-0">
                 <Image src={selectedPuzzle.url} alt={selectedPuzzle.title} fill className="object-cover" />
               </div>
               <div className="flex-1">
-                <span className="text-[10px] font-bold text-sage-600 uppercase tracking-wider">
+                <span className="text-[10px] font-semibold text-sage-400 uppercase tracking-wider">
                   Selected Puzzle
                 </span>
-                <h4 className="text-base font-serif font-bold text-warmbrown-600">
+                <h4 className="text-base font-serif font-bold text-white">
                   {selectedPuzzle.title}
                 </h4>
-                <p className="text-xs text-neutral-500">High Resolution Landscape · Custom AI Enhanced</p>
+                <p className="text-xs text-neutral-400">High Resolution · AI Enhanced</p>
               </div>
               <button
                 onClick={() => switchView('library')}
-                className="px-3 py-1.5 rounded-xl border border-cream-300 text-xs font-medium text-warmbrown-600 hover:bg-cream-100 transition"
+                className="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-medium text-neutral-300 hover:text-white transition"
               >
                 Change
               </button>
@@ -378,12 +375,12 @@ export function LobbyView() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               
               {/* Piece Count / Difficulty */}
-              <div className="bg-cream-100 p-4 rounded-2xl border border-cream-200">
-                <label className="text-xs font-bold text-warmbrown-600 block mb-2">Piece Count</label>
+              <div className="bg-white/[0.03] p-4 rounded-2xl">
+                <label className="text-[11px] font-semibold text-neutral-400 block mb-2">Piece Count</label>
                 <select
                   value={roomConfig.pieceCount}
                   onChange={(e) => handlePieceCountChange(Number(e.target.value))}
-                  className="w-full bg-white px-3 py-2 rounded-xl text-xs text-warmbrown-600 border border-cream-300 focus:outline-none font-medium"
+                  className="w-full bg-white/[0.05] px-3 py-2 rounded-xl text-xs text-white focus:outline-none font-medium appearance-none cursor-pointer"
                 >
                   <option value={12}>12 Pieces (Super Chill)</option>
                   <option value={24}>24 Pieces (Balanced)</option>
@@ -392,25 +389,25 @@ export function LobbyView() {
               </div>
 
               {/* Piece Rotation */}
-              <div className="bg-cream-100 p-4 rounded-2xl border border-cream-200">
-                <label className="text-xs font-bold text-warmbrown-600 block mb-2">Piece Rotation</label>
+              <div className="bg-white/[0.03] p-4 rounded-2xl">
+                <label className="text-[11px] font-semibold text-neutral-400 block mb-2">Piece Rotation</label>
                 <select
                   value={roomConfig.allowRotation ? 'true' : 'false'}
                   onChange={(e) => updateRoomConfig({ allowRotation: e.target.value === 'true' })}
-                  className="w-full bg-white px-3 py-2 rounded-xl text-xs text-warmbrown-600 border border-cream-300 focus:outline-none font-medium"
+                  className="w-full bg-white/[0.05] px-3 py-2 rounded-xl text-xs text-white focus:outline-none font-medium appearance-none cursor-pointer"
                 >
                   <option value="false">Disabled (Easy drag & snap)</option>
-                  <option value="true">Enabled (Double-click or 'R' to turn)</option>
+                  <option value="true">Enabled (Double-click or R to turn)</option>
                 </select>
               </div>
 
               {/* Spatial Ambience Theme */}
-              <div className="bg-cream-100 p-4 rounded-2xl border border-cream-200">
-                <label className="text-xs font-bold text-warmbrown-600 block mb-2">Table Surface Theme</label>
+              <div className="bg-white/[0.03] p-4 rounded-2xl">
+                <label className="text-[11px] font-semibold text-neutral-400 block mb-2">Table Surface Theme</label>
                 <select
                   value={currentTheme}
                   onChange={(e) => handleThemeChange(e.target.value as TableTheme)}
-                  className="w-full bg-white px-3 py-2 rounded-xl text-xs text-warmbrown-600 border border-cream-300 focus:outline-none font-medium"
+                  className="w-full bg-white/[0.05] px-3 py-2 rounded-xl text-xs text-white focus:outline-none font-medium appearance-none cursor-pointer"
                 >
                   {THEME_OPTIONS.map((t) => (
                     <option key={t.id} value={t.id}>
@@ -421,12 +418,12 @@ export function LobbyView() {
               </div>
 
               {/* Synchronized Music Selection */}
-              <div className="bg-cream-100 p-4 rounded-2xl border border-cream-200">
-                <label className="text-xs font-bold text-warmbrown-600 block mb-2">Background Music</label>
+              <div className="bg-white/[0.03] p-4 rounded-2xl">
+                <label className="text-[11px] font-semibold text-neutral-400 block mb-2">Background Music</label>
                 <select
                   value={selectedMusicTrack}
                   onChange={(e) => handleMusicChange(e.target.value as MusicTrackId)}
-                  className="w-full bg-white px-3 py-2 rounded-xl text-xs text-warmbrown-600 border border-cream-300 focus:outline-none font-medium"
+                  className="w-full bg-white/[0.05] px-3 py-2 rounded-xl text-xs text-white focus:outline-none font-medium appearance-none cursor-pointer"
                 >
                   {MUSIC_TRACKS.map((m) => (
                     <option key={m.id} value={m.id}>
