@@ -25,6 +25,7 @@ export interface MusicTrack {
   category: MusicCategory;
   source: MusicSource;
   uploadedBy?: string;
+  loudnessGainDb?: number;
 }
 
 export interface MusicState {
@@ -36,7 +37,8 @@ export interface MusicState {
   isPlaying: boolean;
   position: number; // seconds
   volume: number; // 0.0 - 1.0
-  updatedAt: number; // timestamp
+  serverTimestamp: number; // authoritative sync clock (ms)
+  updatedAt?: number; // backward compat, mirrors serverTimestamp
   updatedBy: string;
 }
 
@@ -76,6 +78,7 @@ export const JIGSAW_MUSIC_CATALOG: MusicTrack[] = [
     duration: 142,
     category: 'Cozy',
     source: 'jigsaw',
+    loudnessGainDb: 1.5,
   },
   {
     id: 'jigsaw-lofi-1',
@@ -86,6 +89,7 @@ export const JIGSAW_MUSIC_CATALOG: MusicTrack[] = [
     duration: 165,
     category: 'Lo-fi',
     source: 'jigsaw',
+    loudnessGainDb: -1.0,
   },
   {
     id: 'jigsaw-coffee-1',
@@ -96,6 +100,7 @@ export const JIGSAW_MUSIC_CATALOG: MusicTrack[] = [
     duration: 154,
     category: 'Coffee Shop',
     source: 'jigsaw',
+    loudnessGainDb: 0.5,
   },
   {
     id: 'jigsaw-rainy-1',
@@ -106,6 +111,7 @@ export const JIGSAW_MUSIC_CATALOG: MusicTrack[] = [
     duration: 180,
     category: 'Rainy',
     source: 'jigsaw',
+    loudnessGainDb: -2.0,
   },
   {
     id: 'jigsaw-nature-1',
@@ -116,6 +122,7 @@ export const JIGSAW_MUSIC_CATALOG: MusicTrack[] = [
     duration: 138,
     category: 'Nature',
     source: 'jigsaw',
+    loudnessGainDb: -1.5,
   },
   {
     id: 'jigsaw-focus-1',
@@ -126,6 +133,7 @@ export const JIGSAW_MUSIC_CATALOG: MusicTrack[] = [
     duration: 195,
     category: 'Focus',
     source: 'jigsaw',
+    loudnessGainDb: 2.0,
   },
   {
     id: 'jigsaw-night-1',
@@ -136,6 +144,7 @@ export const JIGSAW_MUSIC_CATALOG: MusicTrack[] = [
     duration: 160,
     category: 'Night',
     source: 'jigsaw',
+    loudnessGainDb: 0,
   },
   {
     id: 'jigsaw-chill-1',
@@ -146,6 +155,7 @@ export const JIGSAW_MUSIC_CATALOG: MusicTrack[] = [
     duration: 172,
     category: 'Chill',
     source: 'jigsaw',
+    loudnessGainDb: 1.0,
   },
   {
     id: 'jigsaw-acoustic-1',
@@ -156,5 +166,6 @@ export const JIGSAW_MUSIC_CATALOG: MusicTrack[] = [
     duration: 148,
     category: 'Acoustic',
     source: 'jigsaw',
+    loudnessGainDb: -0.5,
   },
 ];

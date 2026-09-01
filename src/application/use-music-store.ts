@@ -6,6 +6,26 @@ import {
   JIGSAW_MUSIC_CATALOG,
 } from '@/domain/music';
 import { UnifiedMusicEngine } from '@/infrastructure/music/unified-music-engine';
+import { computeExpectedPosition } from '@/infrastructure/audio/music-sync';
+import { useAudioSettingsStore } from './use-audio-settings-store';
+import { initializeAudioSettings } from './use-audio-settings-store';
+
+function stampState(partial: Partial<MusicState> & Pick<MusicState, 'isPlaying' | 'position'>): MusicState {
+  const now = Date.now();
+  return {
+    source: partial.source ?? 'jigsaw',
+    trackId: partial.trackId ?? '',
+    title: partial.title ?? '',
+    artist: partial.artist ?? '',
+    thumbnail: partial.thumbnail,
+    isPlaying: partial.isPlaying,
+    position: partial.position,
+    volume: partial.volume ?? useAudioSettingsStore.getState().musicVolume,
+    serverTimestamp: now,
+    updatedAt: now,
+    updatedBy: partial.updatedBy ?? 'Player',
+  };
+}
 
 interface MusicStoreState {
   currentTrack: MusicTrack;
@@ -27,7 +47,6 @@ interface MusicStoreState {
   isSearchingYoutube: boolean;
   syncEnabled: boolean;
 
-  // Actions
   setCenterModalOpen: (open: boolean) => void;
   setActiveTab: (tab: 'library' | 'youtube' | 'upload' | 'queue' | 'settings') => void;
   setYoutubeQuery: (query: string) => void;
@@ -36,7 +55,7 @@ interface MusicStoreState {
 
   playTrack: (track: MusicTrack, broadcast?: boolean) => Promise<void>;
   togglePlay: (broadcast?: boolean) => Promise<void>;
-  pause: (broadcast?: boolean) => void;
+  pause: (broadcast?: boolean) => Promise<void>;
   seek: (position: number, broadcast?: boolean) => void;
   setVolume: (volume: number) => void;
   toggleMute: () => void;
@@ -49,15 +68,14 @@ interface MusicStoreState {
   clearQueue: (broadcast?: boolean) => void;
   setControlMode: (mode: MusicControlMode, broadcast?: boolean) => void;
 
-  // Synchronize remote peer updates
   applyRemoteMusicState: (remoteState: MusicState, remoteQueue?: MusicTrack[], remoteMode?: MusicControlMode) => void;
 
-  // Realtime Broadcast Dispatcher Callback
   onBroadcastMusicState?: (state: MusicState, queue: MusicTrack[], mode: MusicControlMode) => void;
   setBroadcastDispatcher: (fn: (state: MusicState, queue: MusicTrack[], mode: MusicControlMode) => void) => void;
 }
 
 const defaultTrack: MusicTrack = JIGSAW_MUSIC_CATALOG[0];
+const initialTimestamp = Date.now();
 
 const defaultMusicState: MusicState = {
   source: 'jigsaw',
@@ -68,14 +86,15 @@ const defaultMusicState: MusicState = {
   isPlaying: false,
   position: 0,
   volume: 0.7,
-  updatedAt: Date.now(),
+  serverTimestamp: initialTimestamp,
+  updatedAt: initialTimestamp,
   updatedBy: 'System',
 };
 
 export const useMusicStore = create<MusicStoreState>((set, get) => {
   const engine = UnifiedMusicEngine.getInstance();
+  initializeAudioSettings();
 
-  // Attach engine callbacks into the store
   engine.setEvents({
     onTimeUpdate: (current, duration) => {
       set({
@@ -91,6 +110,10 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
     onEnded: () => {
       get().playNext(true);
     },
+    onError: (err) => {
+      console.warn('[useMusicStore] Playback error:', err);
+      get().playNext(true);
+    },
   });
 
   return {
@@ -100,8 +123,8 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
     history: [],
     controlMode: 'everyone',
 
-    volume: 0.7,
-    isMuted: false,
+    volume: useAudioSettingsStore.getState().musicVolume,
+    isMuted: useAudioSettingsStore.getState().musicMuted,
     currentTime: 0,
     duration: defaultTrack.duration,
 
@@ -149,7 +172,6 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
           uploadedBy,
         };
 
-        // Add to queue
         get().addToQueue(track, true);
         return track;
       } catch (err) {
@@ -159,8 +181,8 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
     },
 
     playTrack: async (track: MusicTrack, broadcast: boolean = true) => {
-      const now = Date.now();
-      const nextState: MusicState = {
+      const { musicState: prev } = get();
+      const nextState = stampState({
         source: track.source,
         trackId: track.id,
         title: track.title,
@@ -168,17 +190,16 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
         thumbnail: track.thumbnail,
         isPlaying: true,
         position: 0,
-        volume: get().volume,
-        updatedAt: now,
+        volume: useAudioSettingsStore.getState().musicVolume,
         updatedBy: 'Player',
-      };
+      });
 
       set((state) => ({
         currentTrack: track,
         musicState: nextState,
         currentTime: 0,
         duration: track.duration,
-        history: state.currentTrack ? [state.currentTrack, ...state.history.slice(0, 19)] : state.history,
+        history: prev.trackId ? [state.currentTrack, ...state.history.slice(0, 19)] : state.history,
       }));
 
       await engine.loadTrack(track, 0, true);
@@ -191,14 +212,12 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
     togglePlay: async (broadcast: boolean = true) => {
       const { musicState, currentTrack, currentTime } = get();
       const nextPlaying = !musicState.isPlaying;
-      const now = Date.now();
 
-      const nextState: MusicState = {
+      const nextState = stampState({
         ...musicState,
         isPlaying: nextPlaying,
         position: currentTime,
-        updatedAt: now,
-      };
+      });
 
       set({ musicState: nextState });
 
@@ -207,8 +226,10 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
           await engine.loadTrack(currentTrack, currentTime, true);
         } else {
           await engine.play();
+          await engine.fadeIn(400);
         }
       } else {
+        await engine.fadeOut(200);
         engine.pause();
       }
 
@@ -217,15 +238,15 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
       }
     },
 
-    pause: (broadcast: boolean = true) => {
+    pause: async (broadcast: boolean = true) => {
       const { musicState, currentTime } = get();
-      const nextState: MusicState = {
+      const nextState = stampState({
         ...musicState,
         isPlaying: false,
         position: currentTime,
-        updatedAt: Date.now(),
-      };
+      });
       set({ musicState: nextState });
+      await engine.fadeOut(200);
       engine.pause();
 
       if (broadcast && get().onBroadcastMusicState) {
@@ -234,13 +255,11 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
     },
 
     seek: (position: number, broadcast: boolean = true) => {
-      const now = Date.now();
       const { musicState } = get();
-      const nextState: MusicState = {
+      const nextState = stampState({
         ...musicState,
         position,
-        updatedAt: now,
-      };
+      });
 
       set({
         currentTime: position,
@@ -255,15 +274,18 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
     },
 
     setVolume: (volume: number) => {
-      const clamped = Math.max(0, Math.min(1, volume));
-      set({ volume: clamped, isMuted: clamped === 0 });
-      engine.setVolume(clamped);
+      useAudioSettingsStore.getState().setMusicVolume(volume);
+      const audioSettings = useAudioSettingsStore.getState();
+      set({ volume: audioSettings.musicVolume, isMuted: audioSettings.musicMuted });
+      engine.setVolume(audioSettings.musicVolume);
+      engine.setMuted(audioSettings.musicMuted);
     },
 
     toggleMute: () => {
-      const next = !get().isMuted;
-      set({ isMuted: next });
-      engine.setMuted(next);
+      useAudioSettingsStore.getState().toggleMusicMute();
+      const audioSettings = useAudioSettingsStore.getState();
+      set({ isMuted: audioSettings.musicMuted, volume: audioSettings.musicVolume });
+      engine.setMuted(audioSettings.musicMuted);
     },
 
     addToQueue: (track: MusicTrack, broadcast: boolean = true) => {
@@ -334,52 +356,59 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
 
       const current = get();
 
-      // Update queue and permissions if provided
       if (remoteQueue) set({ queue: remoteQueue });
       if (remoteMode) set({ controlMode: remoteMode });
 
-      // If track changed, load new track
-      if (remoteState.trackId !== current.musicState.trackId) {
-        // Find track in catalog, queue, or reconstruct from remote state
+      const normalizedState: MusicState = {
+        ...remoteState,
+        serverTimestamp: remoteState.serverTimestamp ?? remoteState.updatedAt ?? Date.now(),
+        updatedAt: remoteState.updatedAt ?? remoteState.serverTimestamp,
+      };
+
+      const targetPos = computeExpectedPosition(normalizedState);
+
+      if (normalizedState.trackId !== current.musicState.trackId) {
         let trackToLoad: MusicTrack | undefined =
-          JIGSAW_MUSIC_CATALOG.find((t) => t.id === remoteState.trackId) ||
-          current.queue.find((t) => t.id === remoteState.trackId);
+          JIGSAW_MUSIC_CATALOG.find((t) => t.id === normalizedState.trackId) ||
+          (remoteQueue ?? current.queue).find((t) => t.id === normalizedState.trackId);
 
         if (!trackToLoad) {
           trackToLoad = {
-            id: remoteState.trackId,
-            title: remoteState.title,
-            artist: remoteState.artist,
-            thumbnail: remoteState.thumbnail || 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&auto=format&fit=crop&q=80',
-            youtubeVideoId: remoteState.source === 'youtube' ? remoteState.trackId.replace('youtube-', '') : undefined,
+            id: normalizedState.trackId,
+            title: normalizedState.title,
+            artist: normalizedState.artist,
+            thumbnail: normalizedState.thumbnail || 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&auto=format&fit=crop&q=80',
+            youtubeVideoId: normalizedState.source === 'youtube' ? normalizedState.trackId.replace('youtube-', '') : undefined,
             duration: 240,
-            category: remoteState.source === 'youtube' ? 'YouTube' : 'Cozy',
-            source: remoteState.source,
+            category: normalizedState.source === 'youtube' ? 'YouTube' : normalizedState.source === 'upload' ? 'Uploaded' : 'Cozy',
+            source: normalizedState.source,
           };
         }
 
-        const elapsed = remoteState.isPlaying ? Math.max(0, (Date.now() - remoteState.updatedAt) / 1000) : 0;
-        const targetPos = remoteState.position + elapsed;
+        if (normalizedState.source === 'upload' && !trackToLoad.audioUrl) {
+          console.warn('[useMusicStore] Uploaded track unavailable for late joiner');
+        }
 
         set({
           currentTrack: trackToLoad,
-          musicState: remoteState,
+          musicState: normalizedState,
           currentTime: targetPos,
           duration: trackToLoad.duration,
         });
 
-        await engine.loadTrack(trackToLoad, targetPos, remoteState.isPlaying);
+        await engine.loadTrack(trackToLoad, targetPos, normalizedState.isPlaying);
       } else {
-        // Same track: sync play/pause state and correct clock drift
-        set({ musicState: remoteState });
+        set({ musicState: normalizedState, currentTime: targetPos });
 
-        if (remoteState.isPlaying && !engine.getIsPlaying()) {
+        if (normalizedState.isPlaying && !engine.getIsPlaying()) {
           await engine.play();
-        } else if (!remoteState.isPlaying && engine.getIsPlaying()) {
+          await engine.fadeIn(400);
+        } else if (!normalizedState.isPlaying && engine.getIsPlaying()) {
+          await engine.fadeOut(200);
           engine.pause();
         }
 
-        engine.syncWithServerState(remoteState);
+        engine.syncWithServerState(normalizedState);
       }
     },
 

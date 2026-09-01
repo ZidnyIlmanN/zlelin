@@ -15,6 +15,8 @@ import {
   LayoutDashboard,
   Puzzle,
   Settings,
+  ChevronRight,
+  Sparkles,
 } from 'lucide-react';
 import Image from 'next/image';
 
@@ -158,12 +160,19 @@ export function Header() {
             {isWorkspace && (
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className={`w-10 h-10 rounded-2xl glass-panel flex items-center justify-center text-warmbrown-600 hover:bg-cream-100 transition shadow-sm border border-white/60 ${
-                  isMenuOpen ? 'bg-cream-200 text-sage-700 ring-2 ring-sage-500/20' : ''
+                className={`flex items-center gap-2.5 px-4 py-2 rounded-full transition-all duration-200 border ${
+                  isMenuOpen
+                    ? 'bg-[#2a2520] border-white/15 text-white'
+                    : 'bg-[#1f1b18]/90 border-white/10 text-neutral-300 hover:bg-[#2a2520] hover:text-white hover:border-white/15'
                 }`}
                 title="Toggle Menu"
               >
-                {isMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+                {isMenuOpen ? (
+                  <X className="w-4 h-4 shrink-0" strokeWidth={2} />
+                ) : (
+                  <Menu className="w-4 h-4 shrink-0" strokeWidth={2} />
+                )}
+                <span className="text-sm font-medium tracking-wide">Menu</span>
               </button>
             )}
           </div>
@@ -171,90 +180,181 @@ export function Header() {
         </div>
       </header>
 
-      {/* Solid Opaque Hamburger Dropdown Menu (Positioned on Top-Right of Workspace area) */}
-      {isMenuOpen && (
+      {/* Workspace Hamburger Menu Panel */}
+      {isMenuOpen && isWorkspace && (
         <div className="fixed inset-0 z-50 animate-fade-in">
-          {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-warmbrown-900/40 backdrop-blur-xs"
+            className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
             onClick={() => setIsMenuOpen(false)}
+            aria-hidden
           />
 
-          {/* Solid Opaque Menu Card on Top-Right (Shifts away from VC sidebar) */}
-          <div className={`absolute top-16 z-50 w-72 rounded-3xl bg-white border border-cream-300 shadow-2xl p-4 animate-scale-up space-y-3 transition-all duration-300 ${
-            isWorkspace && isVcExpanded
-              ? 'right-[19rem] sm:right-[21rem] md:right-[23rem] lg:right-[25rem]'
-              : 'right-6'
-          }`}>
-            
-            {/* Header / Room Info */}
-            <div className="flex items-center justify-between pb-2.5 border-b border-cream-100">
-              <div>
-                <h3 className="text-sm font-bold font-serif text-warmbrown-600">Zlelin Menu</h3>
-                <p className="text-[11px] text-neutral-500">Room: {roomConfig.id}</p>
-              </div>
-              <button
-                onClick={() => setIsMenuOpen(false)}
-                className="w-7 h-7 rounded-full bg-cream-100 hover:bg-cream-200 flex items-center justify-center text-warmbrown-600 text-xs transition"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Primary Navigation Items */}
-            <div className="space-y-1.5">
-              {[
-                { id: 'home', label: 'Home Page', icon: Home, desc: 'Welcome & Featured Puzzles' },
-                { id: 'library', label: 'Puzzle Library', icon: BookOpen, desc: 'Browse art & AI Generator' },
-                { id: 'lobby', label: 'Multiplayer Lobby', icon: LayoutDashboard, desc: 'Room code & invitations' },
-                { id: 'game', label: 'Workspace Table', icon: Puzzle, desc: 'Active jigsaw canvas' },
-              ].map((item) => {
-                const Icon = item.icon;
-                const isActive = currentView === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleNavClick(item.id as any)}
-                    className={`w-full flex items-center gap-3 p-2.5 rounded-2xl transition text-left ${
-                      isActive
-                        ? 'bg-sage-500 text-white shadow-sm'
-                        : 'bg-cream-50/80 hover:bg-cream-100 text-warmbrown-600 border border-cream-200'
-                    }`}
-                  >
+          <div
+            className={`absolute top-[4.25rem] z-50 w-[min(100vw-2rem,20rem)] rounded-2xl overflow-hidden animate-scale-up shadow-[0_24px_64px_rgba(0,0,0,0.55),0_0_0_1px_rgba(255,255,255,0.06)] transition-all duration-300 ${
+              isVcExpanded
+                ? 'right-[19rem] sm:right-[21rem] md:right-[23rem] lg:right-[25rem]'
+                : 'right-6'
+            }`}
+            style={{ backgroundColor: '#161616' }}
+            role="dialog"
+            aria-label="Workspace menu"
+          >
+            {/* Room context header */}
+            <div
+              className="px-4 pt-4 pb-3"
+              style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
                     <div
-                      className={`w-7 h-7 rounded-xl flex items-center justify-center shrink-0 ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-cream-200 text-sage-600'
-                      }`}
+                      className="w-6 h-6 rounded-md flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: 'rgba(126,181,100,0.15)' }}
                     >
-                      <Icon className="w-3.5 h-3.5" />
+                      <Sparkles className="w-3.5 h-3.5" style={{ color: '#7eb564' }} />
                     </div>
-                    <div className="overflow-hidden">
-                      <p className="text-xs font-bold truncate">{item.label}</p>
-                      <p className={`text-[10px] truncate ${isActive ? 'text-white/80' : 'text-neutral-400'}`}>
-                        {item.desc}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Profile Settings Shortcut in Menu */}
-            {user && (
-              <div className="pt-2 border-t border-cream-100">
+                    <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">
+                      Workspace
+                    </p>
+                  </div>
+                  <h3 className="text-[15px] font-semibold text-white truncate">{roomConfig.title || 'Puzzle Session'}</h3>
+                  <p className="text-xs text-neutral-500 mt-0.5">
+                    Room <span className="text-neutral-400 font-mono">{roomConfig.id}</span>
+                  </p>
+                </div>
                 <button
+                  type="button"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 transition-colors duration-150 hover:bg-white/8"
+                  style={{ color: '#a0a0a0' }}
+                  title="Close menu"
+                >
+                  <X className="w-4 h-4" strokeWidth={2} />
+                </button>
+              </div>
+
+              {user && (
+                <button
+                  type="button"
                   onClick={() => {
                     setIsMenuOpen(false);
                     setProfileModalOpen(true);
                   }}
-                  className="w-full p-2.5 rounded-2xl bg-cream-50 hover:bg-cream-100 text-warmbrown-600 border border-cream-200 flex items-center gap-2.5 text-xs font-semibold transition"
+                  className="mt-3 w-full flex items-center gap-3 p-2.5 rounded-xl transition-colors duration-150 hover:bg-white/[0.04] text-left"
+                  style={{ backgroundColor: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.05)' }}
                 >
-                  <Settings className="w-4 h-4 text-sage-600" />
-                  <span>Profile Settings</span>
+                  <div className="relative w-9 h-9 rounded-full overflow-hidden shrink-0 ring-1 ring-white/10">
+                    <Image src={user.avatarUrl} alt={user.fullName} fill unoptimized className="object-cover" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-white truncate">{user.fullName || user.username}</p>
+                    <p className="text-[11px] text-neutral-500 truncate">@{user.username}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-neutral-600 shrink-0" />
                 </button>
-              </div>
-            )}
+              )}
+            </div>
 
+            {/* Navigation */}
+            <div className="p-2">
+              <p className="px-3 pt-1 pb-2 text-[10px] font-semibold uppercase tracking-widest text-neutral-600">
+                Navigate
+              </p>
+              <div className="space-y-0.5">
+                {[
+                  { id: 'home', label: 'Home', icon: Home, desc: 'Featured puzzles & welcome' },
+                  { id: 'library', label: 'Puzzle Library', icon: BookOpen, desc: 'Browse art & AI generator' },
+                  { id: 'lobby', label: 'Multiplayer Lobby', icon: LayoutDashboard, desc: 'Rooms & invitations' },
+                  { id: 'game', label: 'Workspace Table', icon: Puzzle, desc: 'Active jigsaw canvas' },
+                ].map((item) => {
+                  const Icon = item.icon;
+                  const isActive = currentView === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleNavClick(item.id as 'home' | 'library' | 'lobby' | 'game')}
+                      className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-150 text-left"
+                      style={{
+                        backgroundColor: isActive ? 'rgba(126,181,100,0.12)' : 'transparent',
+                        border: isActive ? '1px solid rgba(126,181,100,0.2)' : '1px solid transparent',
+                      }}
+                    >
+                      <div
+                        className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 transition-colors duration-150"
+                        style={{
+                          backgroundColor: isActive ? 'rgba(126,181,100,0.18)' : 'rgba(255,255,255,0.05)',
+                          color: isActive ? '#7eb564' : '#a0a0a0',
+                        }}
+                      >
+                        <Icon className="w-4 h-4" strokeWidth={1.75} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className="text-sm font-medium truncate transition-colors"
+                          style={{ color: isActive ? '#ffffff' : '#e8e8e8' }}
+                        >
+                          {item.label}
+                        </p>
+                        <p className="text-[11px] truncate mt-0.5" style={{ color: '#6b6b6b' }}>
+                          {item.desc}
+                        </p>
+                      </div>
+                      <ChevronRight
+                        className="w-4 h-4 shrink-0 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-150"
+                        style={{ color: isActive ? '#7eb564' : '#6b6b6b' }}
+                      />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Footer actions */}
+            <div
+              className="p-2 pt-1"
+              style={{ borderTop: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              {user ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setProfileModalOpen(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-colors duration-150 hover:bg-white/[0.04] text-left"
+                >
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: 'rgba(255,255,255,0.05)', color: '#a0a0a0' }}
+                  >
+                    <Settings className="w-4 h-4" strokeWidth={1.75} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-neutral-200">Profile Settings</p>
+                    <p className="text-[11px] text-neutral-600 mt-0.5">Account & preferences</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-neutral-600 shrink-0" />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMenuOpen(false);
+                    setAuthModalOpen(true, 'login');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-colors duration-150"
+                  style={{ backgroundColor: '#7eb564', color: '#121212' }}
+                >
+                  <LogIn className="w-4 h-4" />
+                  Sign in to Zlelin
+                </button>
+              )}
+
+              <p className="px-3 pt-3 pb-2 text-[10px] text-center text-neutral-600">
+                Zlelin · Collaborative puzzle workspace
+              </p>
+            </div>
           </div>
         </div>
       )}

@@ -16,8 +16,137 @@ import { useWebRtcCall } from '@/application/use-webrtc-call';
 import { ThreePuzzleEngine } from '@/infrastructure/three-puzzle-engine';
 import { FloatingToolbar } from '@/components/layout/FloatingToolbar';
 import { FloatingDock } from '@/components/layout/FloatingDock';
-import { Mic, MicOff, Video as VideoIcon, VideoOff, Maximize2, Minimize2 } from 'lucide-react';
+import { Mic, MicOff, Video as VideoIcon, VideoOff, Maximize2, Minimize2, Users } from 'lucide-react';
 import Image from 'next/image';
+
+const VC_AVATAR_COLORS = ['#1a73e8', '#d93025', '#188038', '#f9ab00', '#9334e6', '#e37400', '#0d9488', '#7c3aed'];
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+}
+
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return VC_AVATAR_COLORS[Math.abs(hash) % VC_AVATAR_COLORS.length];
+}
+
+interface VcParticipantTileProps {
+  name: string;
+  label: string;
+  avatarUrl: string;
+  isMicOn: boolean;
+  isCamOn: boolean;
+  isYou?: boolean;
+  isSpeaking?: boolean;
+  showVideo: boolean;
+  stream: MediaStream | null;
+  onToggleMic?: () => void;
+  onToggleCam?: () => void;
+  setVideoRef?: (el: HTMLVideoElement | null) => void;
+}
+
+function VcParticipantTile({
+  name,
+  label,
+  avatarUrl,
+  isMicOn,
+  isCamOn,
+  isYou,
+  isSpeaking,
+  showVideo,
+  stream,
+  onToggleMic,
+  onToggleCam,
+  setVideoRef,
+}: VcParticipantTileProps) {
+  const accentColor = getAvatarColor(name);
+  const isActive = isSpeaking || isMicOn;
+
+  return (
+    <div
+      onClick={onToggleMic}
+      className={`group relative aspect-video w-full overflow-hidden rounded-xl bg-[#292a2d] transition-all duration-200 ${
+        onToggleMic ? 'cursor-pointer' : ''
+      } ${
+        isActive
+          ? 'ring-2 ring-[#7eb564] shadow-[0_0_0_1px_rgba(126,181,100,0.35),0_8px_24px_rgba(0,0,0,0.35)]'
+          : 'ring-1 ring-white/[0.06] hover:ring-white/15'
+      }`}
+      title={onToggleMic ? `Click to ${isMicOn ? 'mute' : 'unmute'} microphone` : undefined}
+    >
+      {showVideo ? (
+        <video
+          ref={(el) => {
+            setVideoRef?.(el);
+            if (el && stream && el.srcObject !== stream) {
+              el.srcObject = stream;
+              el.play().catch(() => {});
+            }
+          }}
+          autoPlay
+          playsInline
+          muted={isYou}
+          onLoadedMetadata={(e) => {
+            (e.target as HTMLVideoElement).play().catch(() => {});
+          }}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <div className="flex h-full w-full items-center justify-center bg-[#292a2d]">
+          <div
+            className="relative flex h-[4.5rem] w-[4.5rem] items-center justify-center overflow-hidden rounded-full text-xl font-semibold text-white shadow-lg ring-2 ring-white/10"
+            style={{ backgroundColor: accentColor }}
+          >
+            {avatarUrl ? (
+              <Image src={avatarUrl} alt={name} fill unoptimized className="object-cover" />
+            ) : (
+              getInitials(name)
+            )}
+          </div>
+        </div>
+      )}
+
+      {isYou && (
+        <div className="absolute left-2 top-2 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white/90 backdrop-blur-sm">
+          You
+        </div>
+      )}
+
+      {onToggleCam && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleCam();
+          }}
+          className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur-sm transition hover:bg-black/75 group-hover:opacity-100"
+          title={isCamOn ? 'Turn camera off' : 'Turn camera on'}
+        >
+          {isCamOn ? <VideoIcon className="h-3.5 w-3.5 text-emerald-300" /> : <VideoOff className="h-3.5 w-3.5 text-white/80" />}
+        </button>
+      )}
+
+      <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 bg-gradient-to-t from-black/80 via-black/35 to-transparent px-2.5 pb-2 pt-8">
+        <span className="max-w-[calc(100%-2rem)] truncate rounded-md bg-black/50 px-2 py-0.5 text-[11px] font-medium text-white backdrop-blur-sm">
+          {label}
+        </span>
+        <div
+          className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${
+            isMicOn ? 'bg-[#7eb564] text-white' : 'bg-[#ea4335] text-white'
+          }`}
+        >
+          {isMicOn ? <Mic className="h-3 w-3" /> : <MicOff className="h-3 w-3" />}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function WorkspaceView() {
   const {
@@ -318,11 +447,10 @@ export function WorkspaceView() {
             {/* Card 1: Current User ("You") */}
             <div
               onClick={toggleMic}
-              className={`relative w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden shadow-md cursor-pointer transition-all duration-200 group bg-neutral-900 ${
-                isMicOn
+              className={`relative w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden shadow-md cursor-pointer transition-all duration-200 group bg-neutral-900 ${isMicOn
                   ? 'ring-2 ring-sage-400 border border-sage-500/50 shadow-sage-500/20'
                   : 'border border-white/20 hover:border-white/40'
-              }`}
+                }`}
               title={`Click to ${isMicOn ? 'Mute' : 'Unmute'} microphone`}
             >
               {isCamOn && localStream && localStream.getVideoTracks().length > 0 ? (
@@ -359,9 +487,8 @@ export function WorkspaceView() {
                     e.stopPropagation();
                     toggleMic();
                   }}
-                  className={`w-5 h-5 rounded-full flex items-center justify-center shadow-sm shrink-0 pointer-events-auto transition ${
-                    isMicOn ? 'bg-emerald-600 text-white' : 'bg-black/60 text-white/80'
-                  }`}
+                  className={`w-5 h-5 rounded-full flex items-center justify-center shadow-sm shrink-0 pointer-events-auto transition ${isMicOn ? 'bg-emerald-600 text-white' : 'bg-black/60 text-white/80'
+                    }`}
                   title={isMicOn ? 'Mute microphone' : 'Unmute microphone'}
                 >
                   {isMicOn ? <Mic className="w-2.5 h-2.5" /> : <MicOff className="w-2.5 h-2.5" />}
@@ -392,22 +519,21 @@ export function WorkspaceView() {
               return (
                 <div
                   key={p.id}
-                  className={`relative w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden shadow-md bg-neutral-900 transition-all ${
-                    p.isMicOn ? 'ring-2 ring-sage-400/80 border border-sage-500/40 shadow-sage-500/20' : 'border border-white/20'
-                  }`}
+                  className={`relative w-20 h-20 sm:w-22 sm:h-22 rounded-2xl overflow-hidden shadow-md bg-neutral-900 transition-all ${p.isMicOn ? 'ring-2 ring-sage-400/80 border border-sage-500/40 shadow-sage-500/20' : 'border border-white/20'
+                    }`}
                 >
                   {showVideo ? (
                     <video
                       ref={(el) => {
                         if (el && el.srcObject !== remoteStream) {
                           el.srcObject = remoteStream;
-                          el.play().catch(() => {});
+                          el.play().catch(() => { });
                         }
                       }}
                       autoPlay
                       playsInline
                       onLoadedMetadata={(e) => {
-                        (e.target as HTMLVideoElement).play().catch(() => {});
+                        (e.target as HTMLVideoElement).play().catch(() => { });
                       }}
                       className="w-full h-full object-cover"
                     />
@@ -427,9 +553,8 @@ export function WorkspaceView() {
                       {p.name.split(' ')[0].toLowerCase()}
                     </span>
                     <div
-                      className={`w-5 h-5 rounded-full flex items-center justify-center shadow-sm shrink-0 ${
-                        p.isMicOn ? 'bg-emerald-600 text-white' : 'bg-black/60 text-white/80'
-                      }`}
+                      className={`w-5 h-5 rounded-full flex items-center justify-center shadow-sm shrink-0 ${p.isMicOn ? 'bg-emerald-600 text-white' : 'bg-black/60 text-white/80'
+                        }`}
                     >
                       {p.isMicOn ? <Mic className="w-2.5 h-2.5" /> : <MicOff className="w-2.5 h-2.5" />}
                     </div>
@@ -443,18 +568,16 @@ export function WorkspaceView() {
           <div className="flex items-center gap-1.5 pl-1 pr-1 border-l border-cream-300/80">
             <button
               onClick={toggleMic}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs transition shadow-sm ${
-                isMicOn ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-cream-200 text-warmbrown-600 hover:bg-cream-300'
-              }`}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs transition shadow-sm ${isMicOn ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-cream-200 text-warmbrown-600 hover:bg-cream-300'
+                }`}
               title={isMicOn ? 'Mute Microphone' : 'Unmute Microphone'}
             >
               {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4 text-coral-500" />}
             </button>
             <button
               onClick={toggleCam}
-              className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs transition shadow-sm ${
-                isCamOn ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-cream-200 text-warmbrown-600 hover:bg-cream-300'
-              }`}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs transition shadow-sm ${isCamOn ? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-cream-200 text-warmbrown-600 hover:bg-cream-300'
+                }`}
               title={isCamOn ? 'Turn Camera Off' : 'Turn Camera On'}
             >
               {isCamOn ? <VideoIcon className="w-4 h-4" /> : <VideoOff className="w-4 h-4 text-neutral-400" />}
@@ -470,165 +593,114 @@ export function WorkspaceView() {
         </div>
       ) : (
         /* RIGHT EXPANDED FULL-HEIGHT VIDEO CALL SIDEBAR (Split Screen Style) */
-        <div className="fixed top-0 right-0 bottom-0 z-40 w-72 sm:w-80 md:w-88 lg:w-96 bg-neutral-950/95 backdrop-blur-2xl border-l border-white/10 shadow-2xl flex flex-col p-4 animate-slide-in-right overflow-hidden">
-          {/* Sidebar Top Header & Controls (Without green dot indicator) */}
-          <div className="flex items-center justify-between pb-3.5 pt-2 border-b border-white/10 px-1 shrink-0">
-            <div className="flex items-center gap-2">
-              <h4 className="text-sm font-bold text-white tracking-wide font-serif">Video Call</h4>
-              <span className="text-xs text-white/50">({participants.length})</span>
+        <div className="fixed top-0 right-0 bottom-0 z-40 flex w-72 sm:w-80 md:w-88 lg:w-96 animate-slide-in-right flex-col overflow-hidden border-l border-white/[0.06] bg-[#202124] shadow-[-12px_0_40px_rgba(0,0,0,0.45)]">
+          {/* Header */}
+          <div className="flex shrink-0 items-center justify-between border-b border-white/[0.06] px-4 pb-3.5 pt-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="vc-live-dot h-2 w-2 rounded-full bg-[#7eb564]" />
+                <h4 className="text-sm font-semibold tracking-tight text-white">In call</h4>
+              </div>
+              <div className="mt-1 flex items-center gap-1.5 text-[11px] text-white/45">
+                <Users className="h-3 w-3" />
+                <span>{participants.length} participant{participants.length === 1 ? '' : 's'}</span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={toggleMic}
-                className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs transition ${
-                  isMicOn ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white/10 text-white/70 hover:bg-white/20'
-                }`}
-                title={isMicOn ? 'Mute Mic' : 'Unmute Mic'}
-              >
-                {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4 text-coral-400" />}
-              </button>
-              <button
-                onClick={toggleCam}
-                className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs transition ${
-                  isCamOn ? 'bg-emerald-600 text-white shadow-sm' : 'bg-white/10 text-white/70 hover:bg-white/20'
-                }`}
-                title={isCamOn ? 'Turn Camera Off' : 'Turn Camera On'}
-              >
-                {isCamOn ? <VideoIcon className="w-4 h-4 text-emerald-400" /> : <VideoOff className="w-4 h-4 text-white/60" />}
-              </button>
-              <button
-                onClick={() => setVcExpanded(false)}
-                className="w-8 h-8 rounded-xl bg-white/15 hover:bg-white/25 text-white flex items-center justify-center text-xs transition ml-1"
-                title="Minimize back to Top Bar"
-              >
-                <Minimize2 className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              onClick={() => setVcExpanded(false)}
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/[0.08] text-white/80 transition hover:bg-white/[0.14] hover:text-white"
+              title="Minimize to top bar"
+            >
+              <Minimize2 className="h-4 w-4" />
+            </button>
           </div>
 
-          {/* Vertical Scrollable Stack of Widescreen Video Cards */}
-          <div className="flex-1 overflow-y-auto space-y-3.5 py-4 pr-1 scrollbar-thin scrollbar-thumb-white/20">
-            {/* User's Card */}
-            <div
-              onClick={toggleMic}
-              className={`relative aspect-video w-full rounded-2xl overflow-hidden shadow-lg cursor-pointer transition-all duration-200 group bg-neutral-900 border ${
-                isMicOn ? 'border-sage-500/70 ring-1 ring-sage-400' : 'border-white/10 hover:border-white/30'
-              }`}
-              title={`Click to ${isMicOn ? 'Mute' : 'Unmute'} microphone`}
-            >
-              {isCamOn && localStream && localStream.getVideoTracks().length > 0 ? (
-                <video
-                  ref={(el) => {
-                    localVideoRef.current = el;
-                    if (el && el.srcObject !== localStream) {
-                      el.srcObject = localStream;
-                    }
-                  }}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <Image
-                  src={user?.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80'}
-                  alt="You"
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
-              )}
+          {/* Participant grid */}
+          <div className="vc-sidebar-scrollbar flex-1 space-y-3 overflow-y-auto px-3 py-4">
+            <VcParticipantTile
+              name={user?.fullName || user?.username || 'You'}
+              label={`${user?.fullName || user?.username || 'You'} (You)`}
+              avatarUrl={user?.avatarUrl || ''}
+              isMicOn={isMicOn}
+              isCamOn={isCamOn}
+              isYou
+              showVideo={Boolean(isCamOn && localStream && localStream.getVideoTracks().length > 0)}
+              stream={localStream}
+              onToggleMic={toggleMic}
+              onToggleCam={toggleCam}
+              setVideoRef={(el) => {
+                localVideoRef.current = el;
+              }}
+            />
 
-              {/* Bottom Info Overlay: Full Name on Left, Mic on Right */}
-              <div className="absolute inset-x-0 bottom-0 px-3 py-2 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex items-center justify-between pointer-events-none">
-                <span className="text-xs font-bold text-white drop-shadow truncate max-w-[140px]">
-                  {user?.fullName || user?.username || 'You'} (You)
-                </span>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleMic();
-                  }}
-                  className={`w-6 h-6 rounded-full flex items-center justify-center shadow-sm shrink-0 pointer-events-auto transition ${
-                    isMicOn ? 'bg-emerald-600 text-white' : 'bg-black/60 text-white/80'
-                  }`}
-                  title={isMicOn ? 'Mute microphone' : 'Unmute microphone'}
-                >
-                  {isMicOn ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
-                </button>
-              </div>
-
-              {/* Quick Camera Toggle Hover Badge */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleCam();
-                }}
-                className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 hover:bg-black/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition text-xs"
-                title={isCamOn ? 'Turn Camera Off' : 'Turn Camera On'}
-              >
-                {isCamOn ? <VideoIcon className="w-3.5 h-3.5 text-emerald-400" /> : <VideoOff className="w-3.5 h-3.5 text-white/70" />}
-              </button>
-            </div>
-
-            {/* Other Room Participants */}
             {otherParticipants.map((p) => {
               const remoteStream =
                 remoteStreams.find((s) => s.peerId === p.id)?.stream ||
                 (remoteStreams.length === 1 && otherParticipants.length === 1 ? remoteStreams[0].stream : null);
               const hasLiveVideoTrack = remoteStream && remoteStream.getVideoTracks().some((t) => t.readyState === 'live');
-              const showVideo = (p.isCamOn || Boolean(hasLiveVideoTrack)) && remoteStream && remoteStream.getVideoTracks().length > 0;
+              const showVideo =
+                (p.isCamOn || Boolean(hasLiveVideoTrack)) && remoteStream && remoteStream.getVideoTracks().length > 0;
 
               return (
-                <div
+                <VcParticipantTile
                   key={p.id}
-                  className={`relative aspect-video w-full rounded-2xl overflow-hidden shadow-lg bg-neutral-900 transition-all border ${
-                    p.isMicOn ? 'border-sage-500/70 ring-1 ring-sage-400' : 'border-white/10'
-                  }`}
-                >
-                  {showVideo ? (
-                    <video
-                      ref={(el) => {
-                        if (el && el.srcObject !== remoteStream) {
-                          el.srcObject = remoteStream;
-                          el.play().catch(() => {});
-                        }
-                      }}
-                      autoPlay
-                      playsInline
-                      onLoadedMetadata={(e) => {
-                        (e.target as HTMLVideoElement).play().catch(() => {});
-                      }}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Image
-                      src={p.avatar}
-                      alt={p.name}
-                      fill
-                      unoptimized
-                      className="object-cover"
-                    />
-                  )}
-
-                  {/* Bottom Info Overlay: Full Name on Left, Mic on Right */}
-                  <div className="absolute inset-x-0 bottom-0 px-3 py-2 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex items-center justify-between pointer-events-none">
-                    <span className="text-xs font-bold text-white drop-shadow truncate max-w-[150px]">
-                      {p.name}
-                    </span>
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center shadow-sm shrink-0 ${
-                        p.isMicOn ? 'bg-emerald-600 text-white' : 'bg-black/60 text-white/80'
-                      }`}
-                    >
-                      {p.isMicOn ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
-                    </div>
-                  </div>
-                </div>
+                  name={p.name}
+                  label={p.name}
+                  avatarUrl={p.avatar}
+                  isMicOn={p.isMicOn}
+                  isCamOn={p.isCamOn}
+                  isSpeaking={p.isSpeaking}
+                  showVideo={Boolean(showVideo)}
+                  stream={remoteStream}
+                  setVideoRef={(el) => {
+                    if (el && remoteStream && el.srcObject !== remoteStream) {
+                      el.srcObject = remoteStream;
+                      el.play().catch(() => {});
+                    }
+                  }}
+                />
               );
             })}
+          </div>
+
+          {/* Bottom control bar — Meet / Teams style */}
+          <div className="shrink-0 border-t border-white/[0.06] px-4 pb-5 pt-3">
+            <div className="flex items-center justify-center gap-2.5">
+              <button
+                onClick={toggleMic}
+                className={`flex h-11 w-11 items-center justify-center rounded-full transition ${
+                  isMicOn
+                    ? 'bg-[#3c4043] text-white hover:bg-[#4a4e52]'
+                    : 'bg-[#ea4335] text-white hover:bg-[#d93025]'
+                }`}
+                title={isMicOn ? 'Mute microphone' : 'Unmute microphone'}
+              >
+                {isMicOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+              </button>
+
+              <button
+                onClick={toggleCam}
+                className={`flex h-11 w-11 items-center justify-center rounded-full transition ${
+                  isCamOn
+                    ? 'bg-[#3c4043] text-white hover:bg-[#4a4e52]'
+                    : 'bg-[#3c4043] text-white/70 hover:bg-[#4a4e52] hover:text-white'
+                }`}
+                title={isCamOn ? 'Turn camera off' : 'Turn camera on'}
+              >
+                {isCamOn ? <VideoIcon className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+              </button>
+
+              <div className="mx-0.5 h-7 w-px bg-white/10" />
+
+              <button
+                onClick={() => setVcExpanded(false)}
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-[#3c4043] text-white/80 transition hover:bg-[#4a4e52] hover:text-white"
+                title="Minimize to top bar"
+              >
+                <Minimize2 className="h-5 w-5" />
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -644,16 +716,14 @@ export function WorkspaceView() {
       {/* MAIN 3D PUZZLE INTERACTIVE VIEWPORT (Split screen layout when VC is expanded) */}
       <div
         ref={containerRef}
-        className={`flex-1 w-full h-full relative overflow-hidden transition-all duration-300 cursor-grab active:cursor-grabbing ${
-          isVcExpanded ? 'mr-72 sm:mr-80 md:mr-88 lg:mr-96' : ''
-        }`}
+        className={`flex-1 w-full h-full relative overflow-hidden transition-all duration-300 cursor-grab active:cursor-grabbing ${isVcExpanded ? 'mr-72 sm:mr-80 md:mr-88 lg:mr-96' : ''
+          }`}
       />
 
       {/* FLOATING CHAT / ACTIVITY MESSAGES OVERLAY */}
       <div
-        className={`absolute bottom-24 z-40 flex flex-col gap-2 max-w-xs pointer-events-none transition-all duration-300 ${
-          isVcExpanded ? 'right-[19rem] sm:right-[21rem] md:right-[23rem] lg:right-[25rem]' : 'right-6'
-        }`}
+        className={`absolute bottom-24 z-40 flex flex-col gap-2 max-w-xs pointer-events-none transition-all duration-300 ${isVcExpanded ? 'right-[19rem] sm:right-[21rem] md:right-[23rem] lg:right-[25rem]' : 'right-6'
+          }`}
       >
         {chatFeed.map((msg) => (
           <button

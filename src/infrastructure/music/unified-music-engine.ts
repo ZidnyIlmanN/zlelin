@@ -3,29 +3,39 @@ import { MusicProvider, MusicProviderEvents } from './music-provider';
 import { JigsawAudioProvider } from './jigsaw-audio-provider';
 import { YouTubeAudioProvider } from './youtube-audio-provider';
 import { UploadAudioProvider } from './upload-audio-provider';
+import { AudioEngine } from '@/infrastructure/audio/audio-engine';
+import { evaluateDrift, shouldRunDriftCheck } from '@/infrastructure/audio/music-sync';
+
+const FADE_IN_MS = 400;
+const FADE_OUT_MS = 200;
 
 export class UnifiedMusicEngine {
   private static instance: UnifiedMusicEngine | null = null;
 
+  private readonly audioEngine: AudioEngine;
   private jigsawProvider: JigsawAudioProvider;
   private youtubeProvider: YouTubeAudioProvider;
   private uploadProvider: UploadAudioProvider;
 
   private activeProvider: MusicProvider;
   private currentTrack: MusicTrack | null = null;
-  private volume = 0.7;
-  private isMuted = false;
 
   private events: MusicProviderEvents = {};
   private lastDriftCheck = 0;
+  private driftCheckInterval: number | null = null;
 
   private constructor() {
+    this.audioEngine = AudioEngine.getInstance();
     this.jigsawProvider = new JigsawAudioProvider();
-    this.youtubeProvider = new YouTubeAudioProvider();
+    this.youtubeProvider = new YouTubeAudioProvider(() => this.audioEngine.getMusicEffectiveVolume());
     this.uploadProvider = new UploadAudioProvider();
+
+    this.audioEngine.setVolumeRequestCallback(() => this.audioEngine.getMusicEffectiveVolume());
+    this.youtubeProvider.setVolumeRequestCallback(() => this.audioEngine.getMusicEffectiveVolume());
 
     this.activeProvider = this.jigsawProvider;
     this.attachProviderEvents();
+    this.startDriftMonitor();
   }
 
   public static getInstance(): UnifiedMusicEngine {
@@ -64,9 +74,6 @@ export class UnifiedMusicEngine {
     this.uploadProvider.setEvents(wrappedEvents);
   }
 
-  /**
-   * Switch active provider based on track source type.
-   */
   private selectProviderForTrack(track: MusicTrack): MusicProvider {
     if (track.source === 'youtube') {
       return this.youtubeProvider;
@@ -77,25 +84,59 @@ export class UnifiedMusicEngine {
     return this.jigsawProvider;
   }
 
-  /**
-   * Load and play track across provider boundaries.
-   */
+  private startDriftMonitor(): void {
+    if (typeof window === 'undefined') return;
+    this.driftCheckInterval = window.setInterval(() => {
+      // Drift monitor runs via syncWithServerState when remote state is available
+    }, 3000);
+  }
+
+  private stopDriftMonitor(): void {
+    if (this.driftCheckInterval !== null) {
+      clearInterval(this.driftCheckInterval);
+      this.driftCheckInterval = null;
+    }
+  }
+
   public async loadTrack(track: MusicTrack, startPosition: number = 0, autoPlay: boolean = false): Promise<void> {
     const targetProvider = this.selectProviderForTrack(track);
+    const switchingProvider = this.activeProvider !== targetProvider;
 
-    // If switching between different providers, pause the previous one
-    if (this.activeProvider !== targetProvider) {
+    if (switchingProvider && this.getIsPlaying() && this.activeProvider.type !== 'youtube') {
+      await this.fadeOut(FADE_OUT_MS);
+    }
+
+    if (switchingProvider) {
       this.activeProvider.pause();
       this.activeProvider = targetProvider;
     }
 
     this.currentTrack = track;
-    this.activeProvider.setVolume(this.isMuted ? 0 : this.volume);
+    await this.audioEngine.resume();
     await this.activeProvider.load(track, startPosition, autoPlay);
+
+    if (autoPlay) {
+      if (track.source === 'youtube') {
+        await this.youtubeProvider.fadeIn(FADE_IN_MS);
+      } else {
+        await this.audioEngine.getBus('music').fadeIn(FADE_IN_MS);
+      }
+    }
+
+    if (track.source === 'youtube') {
+      this.youtubeProvider.setVolume(0);
+    } else if (switchingProvider) {
+      // Restore bus output when returning to Web Audio providers
+      this.audioEngine.getBus('music').setVolume(this.audioEngine.getBus('music').getVolume());
+    }
   }
 
   public async play(): Promise<void> {
+    await this.audioEngine.resume();
     await this.activeProvider.play();
+    if (this.activeProvider.type === 'youtube') {
+      this.youtubeProvider.setVolume(0);
+    }
   }
 
   public pause(): void {
@@ -107,13 +148,33 @@ export class UnifiedMusicEngine {
   }
 
   public setVolume(volume: number): void {
-    this.volume = Math.max(0, Math.min(1, volume));
-    this.activeProvider.setVolume(this.isMuted ? 0 : this.volume);
+    this.audioEngine.getBus('music').setVolume(volume);
+    if (this.activeProvider.type === 'youtube') {
+      this.youtubeProvider.setVolume(0);
+    }
   }
 
   public setMuted(muted: boolean): void {
-    this.isMuted = muted;
-    this.activeProvider.setVolume(this.isMuted ? 0 : this.volume);
+    this.audioEngine.getBus('music').setMuted(muted);
+    if (this.activeProvider.type === 'youtube') {
+      this.youtubeProvider.setVolume(0);
+    }
+  }
+
+  public async fadeIn(durationMs: number = FADE_IN_MS): Promise<void> {
+    if (this.activeProvider.type === 'youtube') {
+      await this.youtubeProvider.fadeIn(durationMs);
+    } else {
+      await this.audioEngine.getBus('music').fadeIn(durationMs);
+    }
+  }
+
+  public async fadeOut(durationMs: number = FADE_OUT_MS): Promise<void> {
+    if (this.activeProvider.type === 'youtube') {
+      await this.youtubeProvider.fadeOut(durationMs);
+    } else {
+      await this.audioEngine.getBus('music').fadeOut(durationMs);
+    }
   }
 
   public getCurrentTime(): number {
@@ -132,35 +193,35 @@ export class UnifiedMusicEngine {
     return this.currentTrack;
   }
 
-  /**
-   * Clock Drift Alignment Engine
-   * Calculates expected playback time based on server timestamp and corrects drift.
-   */
   public syncWithServerState(state: MusicState): void {
     const now = Date.now();
-    const elapsedSinceUpdate = state.isPlaying ? Math.max(0, (now - state.updatedAt) / 1000) : 0;
-    const expectedPosition = state.position + elapsedSinceUpdate;
 
-    const currentPosition = this.getCurrentTime();
-    const drift = Math.abs(currentPosition - expectedPosition);
-
-    // Throttle drift corrections to avoid constant seeking (every 1.5s)
-    if (now - this.lastDriftCheck < 1500) return;
+    if (!shouldRunDriftCheck(this.lastDriftCheck, now)) return;
     this.lastDriftCheck = now;
 
-    // 1. If drift is small (< 0.35s), ignore to ensure buttery smooth audio
-    if (drift < 0.35) {
-      return;
-    }
+    const currentPosition = this.getCurrentTime();
+    const correction = evaluateDrift(currentPosition, {
+      isPlaying: state.isPlaying,
+      position: state.position,
+      serverTimestamp: state.serverTimestamp ?? state.updatedAt ?? now,
+      updatedAt: state.updatedAt,
+    }, now);
 
-    // 2. If drift is moderate to large (> 1.0s) or track paused/seeked, synchronize position
-    if (drift > 1.0) {
-      console.log(`[UnifiedMusicEngine] Correcting playback drift: ${drift.toFixed(2)}s -> expected: ${expectedPosition.toFixed(2)}s`);
-      this.seek(expectedPosition);
+    if (correction.action === 'seek') {
+      console.log(
+        `[UnifiedMusicEngine] Correcting playback drift: ${correction.drift.toFixed(2)}s -> expected: ${correction.expectedPosition.toFixed(2)}s`
+      );
+      this.seek(correction.expectedPosition);
+    } else if (correction.action === 'nudge') {
+      // Moderate drift: allow natural convergence; seek only if drift grows
+      if (correction.drift > 0.75) {
+        this.seek(correction.expectedPosition);
+      }
     }
   }
 
   public destroy(): void {
+    this.stopDriftMonitor();
     this.jigsawProvider.destroy();
     this.youtubeProvider.destroy();
     this.uploadProvider.destroy();

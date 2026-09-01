@@ -15,17 +15,40 @@ export class YouTubeAudioProvider implements MusicProvider {
   private events: MusicProviderEvents = {};
   private currentTrack: MusicTrack | null = null;
   private isPlaying = false;
-  private volume = 70; // YouTube uses 0 - 100
   private timeUpdateInterval: number | null = null;
   private containerId = 'zlelin-youtube-player-hidden';
   private pendingVideoId: string | null = null;
   private pendingStartPosition = 0;
   private pendingAutoPlay = false;
+  private onVolumeRequest: (() => number) | null = null;
 
-  constructor() {
+  constructor(onVolumeRequest?: () => number) {
+    this.onVolumeRequest = onVolumeRequest ?? null;
     if (typeof window !== 'undefined') {
       this.ensureIFrameContainer();
       this.loadYouTubeIframeAPI();
+    }
+  }
+
+  public setVolumeRequestCallback(callback: () => number): void {
+    this.onVolumeRequest = callback;
+  }
+
+  private getEffectiveVolume(): number {
+    if (this.onVolumeRequest) {
+      return Math.round(Math.max(0, Math.min(1, this.onVolumeRequest())) * 100);
+    }
+    return 70;
+  }
+
+  private applyVolume(): void {
+    const vol = this.getEffectiveVolume();
+    if (this.player && this.isPlayerReady) {
+      try {
+        this.player.setVolume(vol);
+      } catch {
+        // ignore
+      }
     }
   }
 
@@ -93,7 +116,7 @@ export class YouTubeAudioProvider implements MusicProvider {
         events: {
           onReady: () => {
             this.isPlayerReady = true;
-            this.player.setVolume(this.volume);
+            this.applyVolume();
             this.events.onReady?.();
 
             if (this.pendingVideoId) {
@@ -147,6 +170,7 @@ export class YouTubeAudioProvider implements MusicProvider {
     this.timeUpdateInterval = window.setInterval(() => {
       if (this.player && this.isPlayerReady && this.isPlaying) {
         try {
+          this.applyVolume();
           const current = this.player.getCurrentTime() || 0;
           const total = this.player.getDuration() || this.currentTrack?.duration || 0;
           this.events.onTimeUpdate?.(current, total);
@@ -177,7 +201,7 @@ export class YouTubeAudioProvider implements MusicProvider {
           startSeconds: startPosition,
         });
       }
-      this.player.setVolume(this.volume);
+      this.applyVolume();
     } catch (err) {
       console.error('[YouTubeAudioProvider] loadVideoById error:', err);
     }
@@ -225,13 +249,46 @@ export class YouTubeAudioProvider implements MusicProvider {
     }
   }
 
-  setVolume(volume: number): void {
-    this.volume = Math.round(Math.max(0, Math.min(1, volume)) * 100);
-    if (this.player && this.isPlayerReady) {
-      try {
-        this.player.setVolume(this.volume);
-      } catch {}
-    }
+  setVolume(_volume: number): void {
+    this.applyVolume();
+  }
+
+  async fadeIn(durationMs: number): Promise<void> {
+    await this.animateVolume(0, this.getEffectiveVolume(), durationMs);
+  }
+
+  async fadeOut(durationMs: number): Promise<void> {
+    const start = this.getEffectiveVolume();
+    await this.animateVolume(start, 0, durationMs);
+  }
+
+  private animateVolume(from: number, to: number, durationMs: number): Promise<void> {
+    return new Promise((resolve) => {
+      if (!this.player || !this.isPlayerReady || durationMs <= 0) {
+        this.applyVolume();
+        resolve();
+        return;
+      }
+
+      const startTime = performance.now();
+      const tick = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(1, elapsed / durationMs);
+        const current = from + (to - from) * progress;
+        try {
+          this.player.setVolume(Math.round(current));
+        } catch {
+          // ignore
+        }
+        if (progress < 1) {
+          requestAnimationFrame(tick);
+        } else {
+          this.applyVolume();
+          resolve();
+        }
+      };
+      requestAnimationFrame(tick);
+    });
   }
 
   getCurrentTime(): number {

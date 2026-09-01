@@ -160,3 +160,157 @@
   mask-image: linear-gradient(to right, transparent 0%, black 6px, black calc(100% - 8px), transparent 100%);
   -webkit-mask-image: linear-gradient(to right, transparent 0%, black 6px, black calc(100% - 8px), transparent 100%);
 }
+
+/* Modal scale-up */
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-scale-up {
+  animation: scaleUp 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Music workspace modal */
+.music-modal-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.music-modal-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.music-modal-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(126, 181, 100, 0.2);
+  border-radius: 99px;
+}
+.music-modal-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(126, 181, 100, 0.35);
+}
+
+.music-accent-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 99px;
+  background: #3a3a3a;
+  cursor: pointer;
+}
+.music-accent-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition: transform 0.15s ease;
+}
+.music-accent-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.08);
+}
+.music-accent-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: #ffffff;
+}
+.music-accent-slider::-moz-range-track {
+  height: 4px;
+  border-radius: 99px;
+  background: #3a3a3a;
+}
+
+.music-progress-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 99px;
+  background: linear-gradient(
+    to right,
+    #7eb564 0%,
+    #7eb564 var(--progress, 0%),
+    #3a3a3a var(--progress, 0%),
+    #3a3a3a 100%
+  );
+  cursor: pointer;
+}
+.music-progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+.music-progress-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: none;
+  border-radius: 50%;
+  background: #ffffff;
+}
+
+@keyframes equalizerBar {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+
+.music-eq-bar {
+  animation: equalizerBar 0.8s ease-in-out infinite;
+  transform-origin: bottom;
+}
+
+@keyframes tabFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.music-tab-content {
+  animation: tabFadeIn 0.2s ease-out forwards;
+}
+
+/* Video call split-screen sidebar */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes vcLivePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.55; transform: scale(0.92); }
+}
+
+.vc-live-dot {
+  animation: vcLivePulse 2s ease-in-out infinite;
+}
+
+.vc-sidebar-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.vc-sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.vc-sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+}
+.vc-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+}

@@ -1,5 +1,8 @@
 import { MusicTrack } from '@/domain/music';
 import { MusicProvider, MusicProviderEvents } from './music-provider';
+import { AudioEngine } from '@/infrastructure/audio/audio-engine';
+import { MusicProcessingChain } from '@/infrastructure/audio/music-processing-chain';
+import { getLoudnessGainDb } from '@/infrastructure/audio/loudness-normalizer';
 
 export class UploadAudioProvider implements MusicProvider {
   readonly type = 'upload';
@@ -7,10 +10,12 @@ export class UploadAudioProvider implements MusicProvider {
   private events: MusicProviderEvents = {};
   private currentTrack: MusicTrack | null = null;
   private isPlaying = false;
-  private volume = 0.7;
   private timeUpdateInterval: number | null = null;
+  private musicChain: MusicProcessingChain | null = null;
+  private readonly audioEngine: AudioEngine;
 
   constructor() {
+    this.audioEngine = AudioEngine.getInstance();
     if (typeof window !== 'undefined') {
       this.audio = new Audio();
       this.audio.preload = 'auto';
@@ -44,14 +49,25 @@ export class UploadAudioProvider implements MusicProvider {
       this.events.onEnded?.();
     });
 
-    this.audio.addEventListener('error', (e) => {
-      console.warn('[UploadAudioProvider] Audio playback error:', e);
+    this.audio.addEventListener('error', () => {
+      console.warn('[UploadAudioProvider] Audio playback error');
       this.events.onError?.('Failed to play uploaded audio file');
     });
 
     this.audio.addEventListener('canplay', () => {
       this.events.onReady?.();
     });
+  }
+
+  private ensureMusicChain(track: MusicTrack): void {
+    if (!this.audio) return;
+
+    const loudnessDb = getLoudnessGainDb(track);
+    if (!this.musicChain) {
+      this.musicChain = this.audioEngine.createMusicChain(this.audio, loudnessDb);
+    } else {
+      this.musicChain.connectElement(this.audio, loudnessDb);
+    }
   }
 
   private startTimeTracker() {
@@ -76,14 +92,16 @@ export class UploadAudioProvider implements MusicProvider {
     if (!this.audio) return;
 
     if (track.audioUrl) {
+      this.ensureMusicChain(track);
       this.audio.src = track.audioUrl;
-      this.audio.volume = this.volume;
+      this.audio.volume = 1;
 
       if (startPosition > 0) {
         this.audio.currentTime = startPosition;
       }
 
       if (autoPlay) {
+        await this.audioEngine.resume();
         try {
           await this.audio.play();
         } catch {
@@ -94,11 +112,12 @@ export class UploadAudioProvider implements MusicProvider {
   }
 
   async play(): Promise<void> {
+    await this.audioEngine.resume();
     if (this.audio) {
       try {
         await this.audio.play();
       } catch (err) {
-        console.warn('[UploadAudioProvider] play rejected:', err);
+        console.warn('[UploadAudioProvider] Play rejected:', err);
       }
     }
   }
@@ -115,11 +134,16 @@ export class UploadAudioProvider implements MusicProvider {
     }
   }
 
-  setVolume(volume: number): void {
-    this.volume = Math.max(0, Math.min(1, volume));
-    if (this.audio) {
-      this.audio.volume = this.volume;
-    }
+  setVolume(_volume: number): void {
+    // Volume controlled via AudioEngine music bus
+  }
+
+  async fadeIn(durationMs: number): Promise<void> {
+    await this.audioEngine.getBus('music').fadeIn(durationMs);
+  }
+
+  async fadeOut(durationMs: number): Promise<void> {
+    await this.audioEngine.getBus('music').fadeOut(durationMs);
   }
 
   getCurrentTime(): number {
@@ -138,6 +162,8 @@ export class UploadAudioProvider implements MusicProvider {
 
   destroy(): void {
     this.stopTimeTracker();
+    this.musicChain?.destroy();
+    this.musicChain = null;
     if (this.audio) {
       this.audio.pause();
       this.audio.src = '';

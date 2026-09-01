@@ -41,4 +41,10 @@ export interface MusicProvider {
 
   /** Release resources and stop playback */
   destroy(): void;
+
+  /** Fade in playback volume over duration */
+  fadeIn?(durationMs: number): Promise<void>;
+
+  /** Fade out playback volume over duration */
+  fadeOut?(durationMs: number): Promise<void>;
 }

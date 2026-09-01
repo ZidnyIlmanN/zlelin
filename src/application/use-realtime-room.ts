@@ -208,11 +208,17 @@ export function useRealtimeRoom(roomId: string) {
   // 11. Broadcast music state update (playback, track change, queue update, permissions)
   const broadcastMusicState = useCallback((state: MusicState, queue: MusicTrack[], controlMode: MusicControlMode) => {
     if (!channelRef.current || !user) return;
+    const now = Date.now();
+    const stampedState: MusicState = {
+      ...state,
+      serverTimestamp: state.serverTimestamp ?? state.updatedAt ?? now,
+      updatedAt: state.updatedAt ?? state.serverTimestamp ?? now,
+    };
     channelRef.current.send({
       type: 'broadcast',
       event: 'music:state-update',
       payload: {
-        state,
+        state: stampedState,
         queue,
         controlMode,
         senderId: user.id,
@@ -405,12 +411,22 @@ export function useRealtimeRoom(roomId: string) {
             isCamOn: useWorkspaceStore.getState().isCamOn,
           });
 
-          // Request music state from peers in room
           channel.send({
             type: 'broadcast',
             event: 'music:state-request',
             payload: { fromId: user.id },
           });
+        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          // Reconnection recovery: request music state when channel reconnects
+          setTimeout(() => {
+            if (channelRef.current) {
+              channelRef.current.send({
+                type: 'broadcast',
+                event: 'music:state-request',
+                payload: { fromId: user.id },
+              });
+            }
+          }, 2000);
         }
       });
 

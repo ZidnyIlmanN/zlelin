@@ -1,46 +1,40 @@
 import { useRef, useCallback } from 'react';
+import { AudioEngine } from '@/infrastructure/audio/audio-engine';
 
 export function useAudioEngine() {
-  const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioEngineRef = useRef<AudioEngine | null>(null);
 
-  const getAudioContext = useCallback(() => {
-    if (!audioCtxRef.current && typeof window !== 'undefined') {
-      const AudioCtxClass = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
-      if (AudioCtxClass) {
-        audioCtxRef.current = new AudioCtxClass();
-      }
+  const getEngine = useCallback(() => {
+    if (!audioEngineRef.current) {
+      audioEngineRef.current = AudioEngine.getInstance();
     }
-    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
-    }
-    return audioCtxRef.current;
+    return audioEngineRef.current;
   }, []);
 
-  // Soft Tactile Wood Snap Sound Effect
   const playSnapSound = useCallback(() => {
     try {
-      const ctx = getAudioContext();
-      if (!ctx) return;
+      const engine = getEngine();
+      engine.playSfx((ctx, dest) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
 
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(180, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.08);
 
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(180, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 0.08);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
 
-      gain.gain.setValueAtTime(0.4, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+        osc.connect(gain);
+        gain.connect(dest);
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      osc.start();
-      osc.stop(ctx.currentTime + 0.08);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.08);
+      });
     } catch {
       // Audio context error fallback
     }
-  }, [getAudioContext]);
+  }, [getEngine]);
 
   return {
     playSnapSound,

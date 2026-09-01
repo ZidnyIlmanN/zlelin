@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { supabase, isSupabaseConfigured } from '@/infrastructure/supabase/client';
 import { useAuthStore } from './use-auth-store';
 import { useWorkspaceStore } from './use-workspace-store';
+import { AudioEngine } from '@/infrastructure/audio/audio-engine';
 
 export interface RemoteStream {
   peerId: string;
@@ -96,11 +97,22 @@ export function useWebRtcCall(roomId: string) {
           const filtered = prev.filter((s) => s.peerId !== peerId);
           return [...filtered, { peerId, stream }];
         });
+
+        try {
+          AudioEngine.getInstance().connectVoiceStream(stream, peerId);
+        } catch {
+          // AudioEngine not ready
+        }
       }
     };
 
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === 'disconnected' || pc.connectionState === 'failed') {
+        try {
+          AudioEngine.getInstance().disconnectVoiceStream(peerId);
+        } catch {
+          // ignore
+        }
         setRemoteStreams((prev) => prev.filter((s) => s.peerId !== peerId));
       }
     };

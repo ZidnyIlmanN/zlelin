@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { useWorkspaceStore } from '@/application/use-workspace-store';
 import { useMusicStore } from '@/application/use-music-store';
+import { useAudioSettingsStore } from '@/application/use-audio-settings-store';
 import { useAuthStore } from '@/application/use-auth-store';
 import { sendRoomChatMessage } from '@/application/use-realtime-room';
 import { Disc, Play, Pause, SkipForward, Send, MessageSquare, Maximize2, Volume, Volume1, Volume2, VolumeX } from 'lucide-react';
@@ -25,6 +26,7 @@ export function FloatingDock({ className = '' }: { className?: string }) {
     seek,
     setCenterModalOpen,
   } = useMusicStore();
+  const { voiceVolume, sfxVolume, setVoiceVolume, setSfxVolume } = useAudioSettingsStore();
   const { user } = useAuthStore();
 
   const [inputVal, setInputVal] = useState('');
@@ -201,41 +203,32 @@ export function FloatingDock({ className = '' }: { className?: string }) {
               onMouseEnter={handleVolumeMouseEnter}
               onMouseLeave={handleVolumeMouseLeave}
             >
-              <div className="p-2.5 px-3 rounded-2xl bg-white/95 backdrop-blur-xl border border-cream-300 shadow-float flex items-center gap-2.5 w-44">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleMute();
-                  }}
-                  className="text-neutral-500 hover:text-amber-900 transition shrink-0"
-                  title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-                >
-                  {isMuted || volume === 0 ? (
-                    <VolumeX className="w-4 h-4 text-coral-500" />
-                  ) : volume < 0.5 ? (
-                    <Volume1 className="w-4 h-4 text-amber-900" />
-                  ) : (
-                    <Volume2 className="w-4 h-4 text-amber-900" />
-                  )}
-                </button>
-
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.01}
-                  value={isMuted ? 0 : volume}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    setVolume(val);
-                  }}
-                  className="flex-1 accent-amber-900 h-1.5 rounded-lg cursor-pointer bg-cream-200"
-                />
-
-                <span className="text-[10px] font-mono font-bold text-warmbrown-600 w-7 text-right shrink-0">
-                  {isMuted ? '0%' : `${Math.round(volume * 100)}%`}
-                </span>
+              <div className="p-2.5 px-3 rounded-2xl bg-white/95 backdrop-blur-xl border border-cream-300 shadow-float flex flex-col gap-2 w-48">
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-semibold text-warmbrown-500 w-8 shrink-0">MUS</span>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); toggleMute(); }}
+                    className="text-neutral-500 hover:text-amber-900 transition shrink-0"
+                  >
+                    {isMuted || volume === 0 ? <VolumeX className="w-3.5 h-3.5 text-coral-500" /> : <Volume2 className="w-3.5 h-3.5 text-amber-900" />}
+                  </button>
+                  <input type="range" min={0} max={1} step={0.01} value={isMuted ? 0 : volume}
+                    onChange={(e) => setVolume(parseFloat(e.target.value))}
+                    className="flex-1 accent-amber-900 h-1 rounded-lg cursor-pointer bg-cream-200" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-semibold text-warmbrown-500 w-8 shrink-0">VOX</span>
+                  <input type="range" min={0} max={1} step={0.01} value={voiceVolume}
+                    onChange={(e) => setVoiceVolume(parseFloat(e.target.value))}
+                    className="flex-1 accent-sage-500 h-1 rounded-lg cursor-pointer bg-cream-200" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9px] font-semibold text-warmbrown-500 w-8 shrink-0">SFX</span>
+                  <input type="range" min={0} max={1} step={0.01} value={sfxVolume}
+                    onChange={(e) => setSfxVolume(parseFloat(e.target.value))}
+                    className="flex-1 accent-coral-400 h-1 rounded-lg cursor-pointer bg-cream-200" />
+                </div>
               </div>
             </div>
 

@@ -1,5 +1,8 @@
 import { MusicTrack } from '@/domain/music';
 import { MusicProvider, MusicProviderEvents } from './music-provider';
+import { AudioEngine } from '@/infrastructure/audio/audio-engine';
+import { MusicProcessingChain } from '@/infrastructure/audio/music-processing-chain';
+import { getLoudnessGainDb } from '@/infrastructure/audio/loudness-normalizer';
 
 export class JigsawAudioProvider implements MusicProvider {
   readonly type = 'jigsaw';
@@ -7,13 +10,16 @@ export class JigsawAudioProvider implements MusicProvider {
   private events: MusicProviderEvents = {};
   private currentTrack: MusicTrack | null = null;
   private isPlaying = false;
-  private volume = 0.7;
   private timeUpdateInterval: number | null = null;
+  private musicChain: MusicProcessingChain | null = null;
   private synthCtx: AudioContext | null = null;
   private synthOscs: OscillatorNode[] = [];
   private synthGain: GainNode | null = null;
+  private loadRetryCount = 0;
+  private readonly audioEngine: AudioEngine;
 
   constructor() {
+    this.audioEngine = AudioEngine.getInstance();
     if (typeof window !== 'undefined') {
       this.audio = new Audio();
       this.audio.preload = 'auto';
@@ -49,14 +55,37 @@ export class JigsawAudioProvider implements MusicProvider {
     });
 
     this.audio.addEventListener('error', () => {
-      console.warn('[JigsawAudioProvider] Audio source failed to load, activating cozy ambient synthesizer fallback');
+      if (this.loadRetryCount < 1 && this.currentTrack?.audioUrl) {
+        this.loadRetryCount++;
+        const url = this.currentTrack.audioUrl;
+        setTimeout(() => {
+          if (this.audio && this.currentTrack) {
+            this.audio.src = url;
+            this.audio.load();
+          }
+        }, 500);
+        return;
+      }
+      console.warn('[JigsawAudioProvider] Audio source failed, activating ambient synthesizer fallback');
       this.startSynthesizedAmbient();
       this.events.onReady?.();
     });
 
     this.audio.addEventListener('canplay', () => {
+      this.loadRetryCount = 0;
       this.events.onReady?.();
     });
+  }
+
+  private ensureMusicChain(track: MusicTrack): void {
+    if (!this.audio) return;
+
+    const loudnessDb = getLoudnessGainDb(track);
+    if (!this.musicChain) {
+      this.musicChain = this.audioEngine.createMusicChain(this.audio, loudnessDb);
+    } else {
+      this.musicChain.connectElement(this.audio, loudnessDb);
+    }
   }
 
   private startTimeTracker() {
@@ -77,23 +106,26 @@ export class JigsawAudioProvider implements MusicProvider {
 
   async load(track: MusicTrack, startPosition: number = 0, autoPlay: boolean = false): Promise<void> {
     this.currentTrack = track;
+    this.loadRetryCount = 0;
     this.stopSynthesizedAmbient();
 
     if (!this.audio) return;
 
     if (track.audioUrl) {
+      this.ensureMusicChain(track);
       this.audio.src = track.audioUrl;
-      this.audio.volume = this.volume;
+      this.audio.volume = 1;
 
       if (startPosition > 0) {
         this.audio.currentTime = startPosition;
       }
 
       if (autoPlay) {
+        await this.audioEngine.resume();
         try {
           await this.audio.play();
         } catch {
-          // Autoplay policy fallback: audio waits for explicit user gesture
+          // Autoplay policy fallback
         }
       }
     } else {
@@ -102,8 +134,11 @@ export class JigsawAudioProvider implements MusicProvider {
   }
 
   async play(): Promise<void> {
+    await this.audioEngine.resume();
+
     if (this.synthCtx && this.synthGain) {
-      this.synthGain.gain.setValueAtTime(this.volume * 0.15, this.synthCtx.currentTime);
+      const busVolume = this.audioEngine.getBus('music').getEffectiveGain();
+      this.synthGain.gain.setValueAtTime(busVolume * 0.15, this.synthCtx.currentTime);
       this.isPlaying = true;
       this.events.onStateChange?.(true);
       return;
@@ -112,7 +147,7 @@ export class JigsawAudioProvider implements MusicProvider {
     if (this.audio) {
       try {
         await this.audio.play();
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.warn('[JigsawAudioProvider] Play rejected:', err);
       }
     }
@@ -137,14 +172,16 @@ export class JigsawAudioProvider implements MusicProvider {
     }
   }
 
-  setVolume(volume: number): void {
-    this.volume = Math.max(0, Math.min(1, volume));
-    if (this.audio) {
-      this.audio.volume = this.volume;
-    }
-    if (this.synthCtx && this.synthGain && this.isPlaying) {
-      this.synthGain.gain.setValueAtTime(this.volume * 0.15, this.synthCtx.currentTime);
-    }
+  setVolume(_volume: number): void {
+    // Volume controlled via AudioEngine music bus
+  }
+
+  async fadeIn(durationMs: number): Promise<void> {
+    await this.audioEngine.getBus('music').fadeIn(durationMs);
+  }
+
+  async fadeOut(durationMs: number): Promise<void> {
+    await this.audioEngine.getBus('music').fadeOut(durationMs);
   }
 
   getCurrentTime(): number {
@@ -161,28 +198,23 @@ export class JigsawAudioProvider implements MusicProvider {
     return this.isPlaying;
   }
 
-  /**
-   * Cozy Procedural Ambient Synthesizer (Cmaj7 / Am9 chords)
-   * Provides warm, relaxing acoustic/lo-fi tones if external audio streams are blocked.
-   */
   private startSynthesizedAmbient() {
     try {
-      if (typeof window === 'undefined') return;
-      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-      if (!AudioCtx) return;
+      const ctx = this.audioEngine.getContext();
+      if (!ctx) return;
 
       this.stopSynthesizedAmbient();
-      this.synthCtx = new AudioCtx();
-      this.synthGain = this.synthCtx.createGain();
-      this.synthGain.gain.setValueAtTime(this.isPlaying ? this.volume * 0.15 : 0, this.synthCtx.currentTime);
-      this.synthGain.connect(this.synthCtx.destination);
+      this.synthCtx = ctx;
+      this.synthGain = ctx.createGain();
+      const busVolume = this.audioEngine.getBus('music').getEffectiveGain();
+      this.synthGain.gain.setValueAtTime(this.isPlaying ? busVolume * 0.15 : 0, ctx.currentTime);
+      this.synthGain.connect(this.audioEngine.getBus('music').getInput());
 
-      // Cmaj9 frequencies: C3, G3, B3, E4, D4
       const frequencies = [130.81, 196.0, 246.94, 329.63, 293.66];
       this.synthOscs = frequencies.map((freq, i) => {
-        const osc = this.synthCtx!.createOscillator();
+        const osc = ctx.createOscillator();
         osc.type = i % 2 === 0 ? 'sine' : 'triangle';
-        osc.frequency.setValueAtTime(freq, this.synthCtx!.currentTime);
+        osc.frequency.setValueAtTime(freq, ctx.currentTime);
         osc.connect(this.synthGain!);
         osc.start();
         return osc;
@@ -197,21 +229,27 @@ export class JigsawAudioProvider implements MusicProvider {
       try {
         osc.stop();
         osc.disconnect();
-      } catch {}
+      } catch {
+        // ignore
+      }
     });
     this.synthOscs = [];
-    if (this.synthCtx) {
+    if (this.synthGain) {
       try {
-        this.synthCtx.close();
-      } catch {}
-      this.synthCtx = null;
+        this.synthGain.disconnect();
+      } catch {
+        // ignore
+      }
       this.synthGain = null;
     }
+    this.synthCtx = null;
   }
 
   destroy(): void {
     this.stopTimeTracker();
     this.stopSynthesizedAmbient();
+    this.musicChain?.destroy();
+    this.musicChain = null;
     if (this.audio) {
       this.audio.pause();
       this.audio.src = '';
