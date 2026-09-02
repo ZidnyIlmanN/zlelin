@@ -3,8 +3,8 @@
 import React, { useState } from 'react';
 import { useWorkspaceStore, samplePuzzles } from '@/application/use-workspace-store';
 import { PuzzleItem } from '@/domain/puzzle';
-import { Wand2, Search, Play, Puzzle } from 'lucide-react';
-import Image from 'next/image';
+import { PuzzleThumbnail } from '@/components/puzzle/PuzzleThumbnail';
+import { Wand2, Search } from 'lucide-react';
 
 const CATEGORIES = ['All Puzzles', 'Nature', 'Cozy Interiors', 'Cityscapes', 'Minimal & Abstract', 'Illustration'];
 
@@ -15,8 +15,9 @@ export function LibraryView() {
 
   const filteredPuzzles = samplePuzzles.filter((p) => {
     const matchesCategory = selectedCategory === 'All Puzzles' || p.category === selectedCategory;
-    const matchesSearch = searchQuery.trim() === '' || 
-      p.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const matchesSearch =
+      searchQuery.trim() === '' ||
+      p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.category.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
@@ -28,44 +29,42 @@ export function LibraryView() {
   };
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 text-white select-none">
-      
-      {/* 1. Header Section */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
-        <div>
-          <h2 className="text-3xl sm:text-4xl font-serif text-white font-medium tracking-tight">
-            Puzzle Library
-          </h2>
-          <p className="text-xs sm:text-sm text-neutral-400 mt-1 max-w-xl">
-            Pilih karya seni favorit untuk dimainkan sendiri atau bersama teman di meja virtual.
-          </p>
+    <section className="mx-auto max-w-[1400px] select-none px-4 pb-16 pt-2 text-white sm:px-6 lg:px-8">
+      {/* Header */}
+      <header className="mb-8 border-b border-white/[0.06] pb-8">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <h1 className="font-serif text-3xl font-medium tracking-tight text-white sm:text-4xl lg:text-[2.75rem]">
+              Puzzle Library
+            </h1>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-white/45">
+              Browse handcrafted artwork and start a solo session or invite friends to solve together in your virtual workspace.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setUploadModalOpen(true)}
+            className="inline-flex items-center gap-2 self-start rounded-full border border-[#7eb564]/30 bg-[#7eb564]/10 px-5 py-2.5 text-sm font-medium text-[#b8e89a] transition hover:border-[#7eb564]/50 hover:bg-[#7eb564]/15"
+          >
+            <Wand2 className="h-4 w-4" />
+            Upload & AI Enhance
+          </button>
         </div>
+      </header>
 
-        {/* AI Upload CTA */}
-        <button
-          onClick={() => setUploadModalOpen(true)}
-          className="px-5 py-2.5 rounded-2xl bg-[#788A75] hover:bg-[#687A65] text-white font-semibold text-xs transition shadow-sm flex items-center gap-2 self-start md:self-auto"
-        >
-          <Wand2 className="w-4 h-4" />
-          <span>Upload & AI Enhance</span>
-        </button>
-      </div>
-
-      {/* 2. Search & Category Filters Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-8">
-        
-        {/* Category Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar">
+      {/* Toolbar */}
+      <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="library-filter-scroll flex items-center gap-1 overflow-x-auto pb-1">
           {CATEGORIES.map((cat) => {
             const isActive = selectedCategory === cat;
             return (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-2xl text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-medium transition ${
                   isActive
-                    ? 'bg-white/10 text-white shadow-sm'
-                    : 'bg-white/[0.02] text-neutral-400 hover:text-neutral-200 hover:bg-white/[0.05]'
+                    ? 'bg-white text-[#0c1210]'
+                    : 'text-white/45 hover:bg-white/[0.06] hover:text-white/80'
                 }`}
               >
                 {cat}
@@ -74,70 +73,60 @@ export function LibraryView() {
           })}
         </div>
 
-        {/* Search Input */}
-        <div className="relative min-w-[220px]">
-          <Search className="w-3.5 h-3.5 absolute left-3.5 top-3 text-neutral-500" />
-          <input
-            type="text"
-            placeholder="Search puzzle..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-2xl bg-white/[0.03] focus:bg-white/[0.06] text-xs text-white placeholder-neutral-500 focus:outline-none transition"
-          />
+        <div className="flex items-center gap-3">
+          <p className="hidden text-xs text-white/35 sm:block">
+            {filteredPuzzles.length} puzzle{filteredPuzzles.length === 1 ? '' : 's'}
+          </p>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-white/30" />
+            <input
+              type="text"
+              placeholder="Search puzzles..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-full border border-white/[0.08] bg-white/[0.04] py-2.5 pl-10 pr-4 text-sm text-white placeholder:text-white/30 focus:border-[#7eb564]/40 focus:outline-none focus:ring-1 focus:ring-[#7eb564]/25"
+            />
+          </div>
         </div>
-
       </div>
 
-      {/* 3. Puzzle Cards Grid */}
+      {/* Grid */}
       {filteredPuzzles.length === 0 ? (
-        <div className="p-12 text-center rounded-[2.5rem] bg-white/[0.02] my-6">
-          <Puzzle className="w-8 h-8 text-neutral-600 mx-auto mb-2" />
-          <p className="text-sm font-semibold text-neutral-300">No puzzles found</p>
-          <p className="text-xs text-neutral-500 mt-1">Try another category or search term.</p>
+        <div className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/[0.04]">
+            <Search className="h-6 w-6 text-white/25" />
+          </div>
+          <p className="text-base font-medium text-white/70">No puzzles found</p>
+          <p className="mt-1 text-sm text-white/35">Try a different category or search term.</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 sm:gap-6">
+        <div className="grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filteredPuzzles.map((puzzle: PuzzleItem) => (
-            <div
+            <button
               key={puzzle.id}
+              type="button"
               onClick={() => handleSelect(puzzle)}
-              className="bg-white/[0.025] hover:bg-white/[0.05] rounded-[2rem] overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl cursor-pointer group flex flex-col justify-between"
+              className="group w-full text-left"
             >
-              {/* Image Container */}
-              <div className="relative aspect-[4/3] w-full overflow-hidden bg-neutral-900">
-                <Image
-                  src={puzzle.url}
-                  alt={puzzle.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform duration-500"
-                />
-                
-                {/* Piece Count Badge */}
-                <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium tracking-wide">
-                  {puzzle.pieces} Pieces
-                </span>
-              </div>
+              <PuzzleThumbnail
+                imageUrl={puzzle.url}
+                pieceCount={puzzle.pieces}
+                seed={`puzzle-${puzzle.id}`}
+                className="aspect-[4/3] w-full rounded-md transition duration-300 group-hover:brightness-[1.06] group-hover:ring-1 group-hover:ring-white/10"
+              />
 
-              {/* Card Meta & Details */}
-              <div className="p-5 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] font-semibold text-sage-400 uppercase tracking-wider">
-                    {puzzle.category}
-                  </span>
-                  <h4 className="font-serif font-bold text-white text-base mt-0.5 group-hover:text-sage-300 transition-colors">
-                    {puzzle.title}
-                  </h4>
-                </div>
-
-                <div className="w-8 h-8 rounded-full bg-white/5 group-hover:bg-[#788A75] text-neutral-400 group-hover:text-white flex items-center justify-center transition-all shrink-0">
-                  <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
-                </div>
+              <div className="mt-3">
+                <h3 className="truncate text-sm font-medium text-white transition group-hover:text-[#b8e89a]">
+                  {puzzle.title}
+                </h3>
+                <p className="mt-0.5 text-xs text-white/35">
+                  {puzzle.category} · {puzzle.pieces} pieces
+                </p>
               </div>
-            </div>
+            </button>
           ))}
         </div>
       )}
-
     </section>
   );
 }

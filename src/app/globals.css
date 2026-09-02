@@ -197,7 +197,13 @@
   appearance: none;
   height: 4px;
   border-radius: 99px;
-  background: #3a3a3a;
+  background: linear-gradient(
+    to right,
+    #7eb564 0%,
+    #7eb564 var(--progress, 0%),
+    #3a3a3a var(--progress, 0%),
+    #3a3a3a 100%
+  );
   cursor: pointer;
 }
 .music-accent-slider::-webkit-slider-thumb {
@@ -313,4 +319,65 @@
 }
 .vc-sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.22);
+}
+
+.library-filter-scroll::-webkit-scrollbar {
+  height: 0;
+}
+
+/* Floating dock music bar */
+.dock-progress-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 3px;
+  border-radius: 99px;
+  background: linear-gradient(
+    to right,
+    #a3e635 0%,
+    #a3e635 var(--progress, 0%),
+    #3a3a3a var(--progress, 0%),
+    #3a3a3a 100%
+  );
+  cursor: pointer;
+}
+.dock-progress-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #a3e635;
+  box-shadow: 0 0 0 2px rgba(163, 230, 53, 0.25);
+  transition: transform 0.15s ease;
+}
+.dock-progress-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+.dock-progress-slider::-moz-range-thumb {
+  width: 10px;
+  height: 10px;
+  border: none;
+  border-radius: 50%;
+  background: #a3e635;
+}
+.dock-progress-slider::-moz-range-track {
+  height: 3px;
+  border-radius: 99px;
+  background: #3a3a3a;
+}
+
+.dock-volume-slider {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+.dock-volume-slider::-webkit-slider-thumb {
+  width: 8px;
+  height: 8px;
+  box-shadow: none;
+}
+.dock-volume-slider::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
 }

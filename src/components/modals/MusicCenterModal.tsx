@@ -793,7 +793,16 @@ export function MusicCenterModal() {
                         <button type="button" onClick={row.toggle} style={{ color: C.textMuted }}>
                           {row.muted || row.vol === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                         </button>
-                        <input type="range" min={0} max={1} step={0.01} value={row.muted ? 0 : row.vol} onChange={(e) => row.set(parseFloat(e.target.value))} className="flex-1 music-accent-slider" />
+                        <input
+                          type="range"
+                          min={0}
+                          max={1}
+                          step={0.01}
+                          value={row.muted ? 0 : row.vol}
+                          onChange={(e) => row.set(parseFloat(e.target.value))}
+                          className="flex-1 music-accent-slider"
+                          style={{ '--progress': `${(row.muted ? 0 : row.vol) * 100}%` } as React.CSSProperties}
+                        />
                       </div>
                     </div>
                   ))}
@@ -813,7 +822,16 @@ export function MusicCenterModal() {
                   </div>
                   <p className="text-xs" style={{ color: C.textMuted }}>Lower music when someone is speaking.</p>
                   {voiceDuckingEnabled && (
-                    <input type="range" min={4} max={8} step={0.5} value={duckingAmountDb} onChange={(e) => setDuckingAmountDb(parseFloat(e.target.value))} className="w-full music-accent-slider" />
+                    <input
+                      type="range"
+                      min={4}
+                      max={8}
+                      step={0.5}
+                      value={duckingAmountDb}
+                      onChange={(e) => setDuckingAmountDb(parseFloat(e.target.value))}
+                      className="w-full music-accent-slider"
+                      style={{ '--progress': `${((duckingAmountDb - 4) / 4) * 100}%` } as React.CSSProperties}
+                    />
                   )}
                 </section>
               </div>
@@ -927,6 +945,7 @@ export function MusicCenterModal() {
                 value={isMuted ? 0 : volume}
                 onChange={(e) => setVolume(parseFloat(e.target.value))}
                 className="w-20 sm:w-28 music-accent-slider"
+                style={{ '--progress': `${(isMuted ? 0 : volume) * 100}%` } as React.CSSProperties}
               />
             </div>
           </div>
