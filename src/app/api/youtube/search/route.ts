@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MusicTrack } from '@/domain/music';
+import { fetchLiveYouTubeSearch } from '@/lib/youtube-live';
 
 // Curated fallback catalog if offline
 const CURATED_YOUTUBE_CATALOG: MusicTrack[] = [
@@ -44,106 +45,6 @@ const CURATED_YOUTUBE_CATALOG: MusicTrack[] = [
     source: 'youtube',
   },
 ];
-
-/**
- * Fetch live search results directly from YouTube search endpoint
- */
-async function fetchLiveYouTubeSearch(query: string): Promise<MusicTrack[]> {
-  const url = `https://www.youtube.com/results?search_query=${encodeURIComponent(query + ' music')}`;
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent':
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
-      'Accept-Language': 'en-US,en;q=0.9',
-    },
-    next: { revalidate: 120 },
-  });
-
-  if (!res.ok) return [];
-
-  const html = await res.text();
-  let rawJson = '';
-
-  const marker = 'ytInitialData = ';
-  const startIdx = html.indexOf(marker);
-  if (startIdx !== -1) {
-    const jsonStart = startIdx + marker.length;
-    const jsonEnd = html.indexOf(';</script>', jsonStart);
-    if (jsonEnd !== -1) {
-      rawJson = html.substring(jsonStart, jsonEnd).trim();
-    } else {
-      const match = html.substring(jsonStart).match(/^(\{[\s\S]+?\});/);
-      if (match) rawJson = match[1];
-    }
-  }
-
-  if (!rawJson) return [];
-
-  try {
-    const data = JSON.parse(rawJson);
-    const contents =
-      data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents;
-    if (!contents || !Array.isArray(contents)) return [];
-
-    const tracks: MusicTrack[] = [];
-
-    for (const section of contents) {
-      const items = section?.itemSectionRenderer?.contents || [];
-      for (const item of items) {
-        if (item.videoRenderer) {
-          const v = item.videoRenderer;
-          const videoId = v.videoId;
-          if (!videoId) continue;
-
-          const title =
-            v.title?.runs?.[0]?.text ||
-            v.title?.simpleText ||
-            'YouTube Music Track';
-          const artist =
-            v.ownerText?.runs?.[0]?.text ||
-            v.shortBylineText?.runs?.[0]?.text ||
-            'YouTube Artist';
-
-          const thumbnails = v.thumbnail?.thumbnails || [];
-          const thumbnail =
-            thumbnails.length > 0
-              ? thumbnails[thumbnails.length - 1].url
-              : `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
-
-          const lengthText = v.lengthText?.simpleText || '';
-          let duration = 210;
-          if (lengthText) {
-            const parts = lengthText.split(':').map(Number);
-            if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
-              duration = parts[0] * 60 + parts[1];
-            } else if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
-              duration = parts[0] * 3600 + parts[1] * 60 + parts[2];
-            }
-          }
-
-          tracks.push({
-            id: `youtube-${videoId}`,
-            title,
-            artist,
-            thumbnail,
-            youtubeVideoId: videoId,
-            duration,
-            category: 'YouTube',
-            source: 'youtube',
-          });
-
-          if (tracks.length >= 18) break;
-        }
-      }
-      if (tracks.length >= 18) break;
-    }
-
-    return tracks;
-  } catch (err) {
-    console.warn('[YouTube Search Route] Parse error:', err);
-    return [];
-  }
-}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

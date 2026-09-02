@@ -1,28 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { MusicTrack } from '@/domain/music';
-import { collectTracksFromYtData, extractYtInitialData } from '@/lib/youtube-tracks';
-
-const YOUTUBE_USER_AGENT =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36';
-
-async function fetchRelatedFromWatchPage(videoId: string): Promise<MusicTrack[]> {
-  const url = `https://www.youtube.com/watch?v=${encodeURIComponent(videoId)}`;
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': YOUTUBE_USER_AGENT,
-      'Accept-Language': 'en-US,en;q=0.9',
-    },
-    next: { revalidate: 300 },
-  });
-
-  if (!res.ok) return [];
-
-  const html = await res.text();
-  const data = extractYtInitialData(html);
-  if (!data) return [];
-
-  return collectTracksFromYtData(data, { excludeVideoId: videoId, limit: 24 });
-}
+import { fetchLiveYouTubeRelated } from '@/lib/youtube-live';
 
 async function fetchRelatedFromOfficialApi(videoId: string, apiKey: string): Promise<MusicTrack[]> {
   const searchUrl = new URL('https://www.googleapis.com/youtube/v3/search');
@@ -93,7 +71,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const tracks = await fetchRelatedFromWatchPage(videoId);
+    const tracks = await fetchLiveYouTubeRelated(videoId);
     if (tracks.length > 0) {
       return NextResponse.json({ tracks, source: 'watch_page' });
     }
