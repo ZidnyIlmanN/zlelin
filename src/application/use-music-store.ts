@@ -7,6 +7,11 @@ import {
 } from '@/domain/music';
 import { UnifiedMusicEngine } from '@/infrastructure/music/unified-music-engine';
 import { computeExpectedPosition } from '@/infrastructure/audio/music-sync';
+import { getYouTubeVideoId } from '@/lib/youtube-tracks';
+import {
+  buildYoutubeAutoplaySearchQuery,
+  pickBestYoutubeAutoplayTrack,
+} from '@/lib/youtube-autoplay';
 import { useAudioSettingsStore } from './use-audio-settings-store';
 import { initializeAudioSettings } from './use-audio-settings-store';
 
@@ -44,6 +49,8 @@ interface MusicStoreState {
 
   youtubeQuery: string;
   youtubeResults: MusicTrack[];
+  youtubeAutoplayPool: MusicTrack[];
+  youtubePlaybackContext: string;
   isSearchingYoutube: boolean;
   syncEnabled: boolean;
 
@@ -72,6 +79,28 @@ interface MusicStoreState {
 
   onBroadcastMusicState?: (state: MusicState, queue: MusicTrack[], mode: MusicControlMode) => void;
   setBroadcastDispatcher: (fn: (state: MusicState, queue: MusicTrack[], mode: MusicControlMode) => void) => void;
+}
+
+function dedupeTracks(tracks: MusicTrack[]): MusicTrack[] {
+  const seen = new Set<string>();
+  return tracks.filter((track) => {
+    const key = track.source === 'youtube' ? getYouTubeVideoId(track) : track.id;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+async function fetchYoutubeRelatedTracks(videoId: string): Promise<MusicTrack[]> {
+  try {
+    const res = await fetch(`/api/youtube/related?v=${encodeURIComponent(videoId)}`);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return data.tracks || [];
+  } catch (err) {
+    console.warn('[useMusicStore] fetchYoutubeRelatedTracks error:', err);
+    return [];
+  }
 }
 
 const defaultTrack: MusicTrack = JIGSAW_MUSIC_CATALOG[0];
@@ -133,6 +162,8 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
 
     youtubeQuery: '',
     youtubeResults: [],
+    youtubeAutoplayPool: [],
+    youtubePlaybackContext: '',
     isSearchingYoutube: false,
     syncEnabled: true,
 
@@ -181,7 +212,7 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
     },
 
     playTrack: async (track: MusicTrack, broadcast: boolean = true) => {
-      const { musicState: prev } = get();
+      const { musicState: prev, youtubeResults, youtubeQuery } = get();
       const nextState = stampState({
         source: track.source,
         trackId: track.id,
@@ -194,15 +225,41 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
         updatedBy: 'Player',
       });
 
+      const searchIndex = youtubeResults.findIndex((t) => t.id === track.id);
+      const searchTail = searchIndex >= 0 ? youtubeResults.slice(searchIndex + 1) : [];
+      const playbackContext =
+        track.source === 'youtube' ? youtubeQuery || `${track.artist} ${track.title}` : get().youtubePlaybackContext;
+
       set((state) => ({
         currentTrack: track,
         musicState: nextState,
         currentTime: 0,
         duration: track.duration,
         history: prev.trackId ? [state.currentTrack, ...state.history.slice(0, 19)] : state.history,
+        youtubePlaybackContext: playbackContext,
+        youtubeAutoplayPool:
+          track.source === 'youtube'
+            ? dedupeTracks([
+                ...searchTail,
+                ...state.youtubeAutoplayPool.filter((item) => item.id !== track.id),
+              ])
+            : [],
       }));
 
       await engine.loadTrack(track, 0, true);
+
+      if (track.source === 'youtube') {
+        const videoId = getYouTubeVideoId(track);
+        void fetchYoutubeRelatedTracks(videoId).then((related) => {
+          if (related.length === 0) return;
+          set((state) => {
+            if (state.currentTrack.id !== track.id) return state;
+            return {
+              youtubeAutoplayPool: dedupeTracks([...state.youtubeAutoplayPool, ...related]),
+            };
+          });
+        });
+      }
 
       if (broadcast && get().onBroadcastMusicState) {
         get().onBroadcastMusicState!(nextState, get().queue, get().controlMode);
@@ -318,11 +375,45 @@ export const useMusicStore = create<MusicStoreState>((set, get) => {
     },
 
     playNext: async (broadcast: boolean = true) => {
-      const { queue } = get();
-      if (queue.length === 0) return;
+      const { queue, currentTrack, history, youtubeAutoplayPool, youtubePlaybackContext } = get();
 
-      const [nextTrack, ...remaining] = queue;
-      set({ queue: remaining });
+      if (queue.length > 0) {
+        const [nextTrack, ...remaining] = queue;
+        set({ queue: remaining });
+        await get().playTrack(nextTrack, broadcast);
+        return;
+      }
+
+      if (currentTrack.source !== 'youtube') return;
+
+      const contextQuery = youtubePlaybackContext || currentTrack.artist;
+      let nextTrack = pickBestYoutubeAutoplayTrack(
+        currentTrack,
+        youtubeAutoplayPool,
+        history,
+        contextQuery
+      );
+
+      if (!nextTrack) {
+        const related = await fetchYoutubeRelatedTracks(getYouTubeVideoId(currentTrack));
+        const freshPool = dedupeTracks([...youtubeAutoplayPool, ...related]);
+        set({ youtubeAutoplayPool: freshPool });
+        nextTrack = pickBestYoutubeAutoplayTrack(currentTrack, freshPool, history, contextQuery);
+      }
+
+      if (!nextTrack) {
+        const searchQuery = buildYoutubeAutoplaySearchQuery(currentTrack, contextQuery);
+        await get().searchYouTube(searchQuery);
+        const { youtubeResults } = get();
+        nextTrack = pickBestYoutubeAutoplayTrack(
+          currentTrack,
+          youtubeResults,
+          history,
+          contextQuery
+        );
+      }
+
+      if (!nextTrack) return;
 
       await get().playTrack(nextTrack, broadcast);
     },
