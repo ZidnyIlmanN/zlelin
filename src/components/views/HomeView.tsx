@@ -6,6 +6,7 @@ import { useAuthStore } from '@/application/use-auth-store';
 import { useFriendsStore } from '@/application/use-friends-store';
 import { User, Users, Puzzle, Settings, BookOpen, LayoutDashboard } from 'lucide-react';
 import Image from 'next/image';
+import { JigsawPieceSvg } from '@/components/ui/JigsawPieceSvg';
 
 // Lazy load the 3D scene for optimal performance
 const HeroScene = lazy(() =>
@@ -41,33 +42,21 @@ export function HomeView() {
     >
       {/* Ambient background watermark puzzle shapes */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        <svg
-          className="absolute top-24 left-12 opacity-[0.035]"
-          width="96"
-          height="96"
-          viewBox="0 0 48 48"
-          fill="white"
-        >
-          <path d="M14 4c0 3.3-2.7 6-6 6s-6-2.7-6-6H0v18h2c0-3.3 2.7-6 6-6s6 2.7 6 6h12c0-3.3 2.7-6 6-6s6 2.7 6 6h2V4h-2c0 3.3-2.7 6-6 6s-6-2.7-6-6H14z" />
-        </svg>
-        <svg
-          className="absolute top-72 right-16 opacity-[0.035] rotate-45"
-          width="110"
-          height="110"
-          viewBox="0 0 48 48"
-          fill="white"
-        >
-          <path d="M14 4c0 3.3-2.7 6-6 6s-6-2.7-6-6H0v18h2c0-3.3 2.7-6 6-6s6 2.7 6 6h12c0-3.3 2.7-6 6-6s6 2.7 6 6h2V4h-2c0 3.3-2.7 6-6 6s-6-2.7-6-6H14z" />
-        </svg>
-        <svg
-          className="absolute bottom-28 left-20 opacity-[0.03] -rotate-12"
-          width="120"
-          height="120"
-          viewBox="0 0 48 48"
-          fill="white"
-        >
-          <path d="M14 4c0 3.3-2.7 6-6 6s-6-2.7-6-6H0v18h2c0-3.3 2.7-6 6-6s6 2.7 6 6h12c0-3.3 2.7-6 6-6s6 2.7 6 6h2V4h-2c0 3.3-2.7 6-6 6s-6-2.7-6-6H14z" />
-        </svg>
+        <JigsawPieceSvg
+          tabs={[1, -1, -1, 1]}
+          size={96}
+          className="absolute top-24 left-12 text-white opacity-[0.035]"
+        />
+        <JigsawPieceSvg
+          tabs={[-1, 1, 1, -1]}
+          size={110}
+          className="absolute top-72 right-16 text-white opacity-[0.035] rotate-[18deg]"
+        />
+        <JigsawPieceSvg
+          tabs={[1, 1, -1, -1]}
+          size={120}
+          className="absolute bottom-28 left-20 text-white opacity-[0.03] -rotate-12"
+        />
       </div>
 
       {/* 1. Header: ZLELIN Brand Title & Navigation Links */}
